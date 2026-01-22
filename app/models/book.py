@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.sql import func
 from app.core.database import Base
 
+
 class Book(Base):
     __tablename__ = "books"
 
@@ -11,3 +12,4 @@ class Book(Base):
     year = Column(Integer, nullable=True)
     isbn = Column(String(20), unique=True, index=True, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())

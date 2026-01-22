@@ -1,6 +1,6 @@
 # Library API Advanced
 
-Uma implementação de API nível "Pleno" demonstrando arquitetura de backend moderna e melhores práticas com FastAPI.
+Uma implementação de API nível senior demonstrando arquitetura de backend moderna, observabilidade e UX rica.
 
 ## Funcionalidades
 
@@ -14,6 +14,7 @@ Uma implementação de API nível "Pleno" demonstrando arquitetura de backend mo
     - **Testes**: `pytest` e `httpx` para testes de integração assíncronos.
 - **Segurança de Tipos**: Validação completa com Pydantic v2.
 - **CI/CD**: Pipeline de testes automático com GitHub Actions.
+- **UI**: Interface inovadora para curadoria do acervo em tempo real.
 
 ## Estrutura do Projeto
 
@@ -47,6 +48,7 @@ Este projeto usa Alembic. Inicialize o banco:
 ```bash
 alembic upgrade head
 ```
+Se preferir criar as tabelas automaticamente, use `DB_AUTO_CREATE=true` (padrao).
 
 ### 4. Iniciar o Servidor
 ```bash
@@ -55,6 +57,16 @@ uvicorn app.main:app --reload
 
 ### 5. Documentação da API
 Acesse `http://localhost:8000/docs` para ver o Swagger UI interativo.
+
+### 6. UI
+Abra `http://localhost:8000/` para a nova interface visual.
+
+### Busca e filtros (GET /api/v1/books)
+- `q`: pesquisa em titulo/autor (min 2 chars)
+- `author`: filtra por autor
+- `year`, `year_min`, `year_max`
+- `sort`: `title`, `author`, `year`, `created_at`
+- `order`: `asc`, `desc`
 
 ## Testes
 
