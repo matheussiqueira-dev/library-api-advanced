@@ -79,3 +79,21 @@ async def test_delete_book(client):
     # Verify it's gone
     get_res = await client.get(f"/api/v1/books/{book_id}")
     assert get_res.status_code == 404
+
+@pytest.mark.asyncio
+async def test_books_total_header(client):
+    response = await client.get("/api/v1/books/")
+    assert response.status_code == 200
+    assert response.headers.get("X-Total-Count") is not None
+
+@pytest.mark.asyncio
+async def test_search_books(client):
+    unique_title = "Search Target"
+    await client.post(
+        "/api/v1/books/",
+        json={"title": unique_title, "author": "Finder", "year": 2022, "isbn": "555-555-555"},
+    )
+    response = await client.get("/api/v1/books/?q=Search")
+    assert response.status_code == 200
+    titles = [book["title"] for book in response.json()]
+    assert unique_title in titles
