@@ -1,10 +1,11 @@
 import pytest
+import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 from app.main import app
-from app.core.database import Base, engine, get_db, AsyncSessionLocal
+from app.core.database import Base, engine
 
 # Fixture for the database
-@pytest.fixture(scope="module")
+@pytest_asyncio.fixture(scope="module")
 async def test_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -12,7 +13,7 @@ async def test_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def client(test_db):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac

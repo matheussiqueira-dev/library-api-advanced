@@ -1,76 +1,82 @@
-# Library API Advanced
+# Library Studio Advanced API
 
-Uma implementação de API nível senior demonstrando arquitetura de backend moderna, observabilidade e UX rica.
+Uma implementação de referência de nível Sênior para gestão de acervos bibliográficos, demonstrando arquitetura moderna, padrões de design robustos e uma experiência de usuário (UX) excepcional.
 
-## Funcionalidades
+Este projeto transcende um CRUD básico, oferecendo integração com APIs externas, arquitetura em camadas (Repository/Service/API) e uma interface reativa de alto desempenho.
 
-- **Framework**: FastAPI (Alta performance, fácil aprendizado).
-- **Banco de Dados**: SQLite (Assíncrono) usando **SQLAlchemy 2.0** e `aiosqlite`.
-- **Migrações**: Gerenciamento de schema do banco com **Alembic**.
+## 🚀 Tecnologias Core
+
+- **Backend**: FastAPI (Python 3.10+) - Performance extrema com tipagem estática via Pydantic v2.
+- **Banco de Dados**: SQLite com **SQLAlchemy 2.0 (Async)** e `aiosqlite`.
 - **Arquitetura**:
-    - **Design em Camadas**: Rotas -> Serviços -> Modelos.
-    - **Injeção de Dependências**: Uso intensivo do `Depends` do FastAPI.
-    - **Configuração**: `pydantic-settings` para variáveis de ambiente.
-    - **Testes**: `pytest` e `httpx` para testes de integração assíncronos.
-- **Segurança de Tipos**: Validação completa com Pydantic v2.
-- **CI/CD**: Pipeline de testes automático com GitHub Actions.
-- **UI**: Interface inovadora para curadoria do acervo em tempo real.
+  - **Repository Pattern**: Abstração total da camada de dados.
+  - **Service Layer**: Centralização das regras de negócio.
+  - **Dependency Injection**: Uso intensivo do sistema de dependências do FastAPI.
+- **Frontend**: Vanilla JS moderno, CSS customizado com foco em Glassmorphism e Ícones Lucide.
+- **Integrações**: Google Books / OpenLibrary API para busca automática de metadados via ISBN.
+- **Observabilidade**: Sistema de log estruturado e middleware para rastreamento de tempo de resposta.
 
-## Estrutura do Projeto
+## ✨ Funcionalidades Principais
+
+- **Gestão de Livros Pro**: Cadastro completo com suporte a descrição, capa, ano e status (Disponível, Emprestado, etc).
+- **Lookup Inteligente via ISBN**: Preenchimento automático de metadados consumindo APIs externas.
+- **Busca Avançada**: Filtros em tempo real por título, autor, intervalo de anos e paginação dinâmica.
+- **Interface Premium**: Design dark-mode sofisticado, animações suaves e layouts responsivos.
+- **Dashboard de Estatísticas**: Visão geral do acervo em tempo real.
+- **API Auto-documentada**: Swagger UI integrado para testes rápidos.
+
+## 📁 Estrutura do Projeto
 
 ```text
 library-api-advanced/
 ├── app/
-│   ├── api/        # Rotas (Controllers)
-│   ├── core/       # Configuração e Setup de DB
-│   ├── models/     # Modelos SQLAlchemy
-│   ├── schemas/    # Schemas Pydantic (DTOs)
-│   ├── services/   # Regras de Negócio
-│   └── main.py     # Ponto de Entrada
-├── tests/          # Suíte de Testes
-├── alembic/        # Migrações de Banco
-└── requirements.txt
+│   ├── api/            # Camada de Entrada (Controllers/Routes)
+│   ├── core/           # Configurações dinâmicas e Conexão de Banco
+│   ├── models/         # Definição de Schemas SQLAlchemy (Data)
+│   ├── schemas/        # DTOs Pydantic (Validação)
+│   ├── repositories/   # Abstração de Banco (Repository Pattern)
+│   ├── services/       # Regras de Negócio e Lógica de Integração
+│   ├── web/            # Assets do Frontend (HTML, CSS, JS)
+│   └── main.py         # Inicialização da Application
+├── tests/              # Suíte de Testes Automatizados (Pytest)
+├── alembic/            # Gerenciamento de Migrações de Banco
+└── requirements.txt    # Gerenciamento de Dependências
 ```
 
-## Como Executar
+## 🛠️ Instalação e Uso
 
-### 1. Pré-requisitos
-- Python 3.10+
-- Ambiente Virtual (recomendado)
-
-### 2. Instalar Dependências
+### 1. Preparação do Ambiente
 ```bash
+python -m venv .venv
+source .venv/bin/activate  # ou .venv\Scripts\activate no Windows
 pip install -r requirements.txt
 ```
 
-### 3. Rodar Migrações
-Este projeto usa Alembic. Inicialize o banco:
+### 2. Configuração do Banco
+O sistema utiliza criação automática de schema para facilitar o setup inicial.
 ```bash
+# Opcional se desejar rodar migrações manuais
 alembic upgrade head
 ```
-Se preferir criar as tabelas automaticamente, use `DB_AUTO_CREATE=true` (padrao).
 
-### 4. Iniciar o Servidor
+### 3. Execução
 ```bash
 uvicorn app.main:app --reload
 ```
 
-### 5. Documentação da API
-Acesse `http://localhost:8000/docs` para ver o Swagger UI interativo.
+### 4. Acessos
+- **Frontend**: `http://localhost:8000/`
+- **Docs (Swagger)**: `http://localhost:8000/docs`
 
-### 6. UI
-Abra `http://localhost:8000/` para a nova interface visual.
+## 🛡️ Boas Práticas Aplicadas
 
-### Busca e filtros (GET /api/v1/books)
-- `q`: pesquisa em titulo/autor (min 2 chars)
-- `author`: filtra por autor
-- `year`, `year_min`, `year_max`
-- `sort`: `title`, `author`, `year`, `created_at`
-- `order`: `asc`, `desc`
+- **DRY (Don't Repeat Yourself)**: Uso de um Base Repository para operações CRUD genéricas.
+- **SoC (Separation of Concerns)**: Responsabilidades claras entre cada camada da aplicação.
+- **Segurança**: Validação rigorosa de inputs com Pydantic.
+- **Performance**: Uso intensivo de operações assíncronas (async/await) para I/O não bloqueante.
+- **UX/UI**: Hierarquia visual clara, feedback imediato ao usuário (Toasts) e estados de carregamento.
 
-## Testes
+---
 
-Para rodar a suíte de testes:
-```bash
-pytest
-```
+**Autoria: Matheus Siqueira**  
+**Website:** [https://www.matheussiqueira.dev/](https://www.matheussiqueira.dev/)

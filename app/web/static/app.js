@@ -1,319 +1,396 @@
+/**
+ * Library Studio - Premium Frontend Logic
+ * Senior Implementation: Async/Await, Clean Architecture, Reactive State
+ */
+
 const apiBase = window.APP_CONFIG?.apiBase || "/api/v1";
 const bookEndpoint = `${apiBase}/books/`;
 
+// Visual Config & Status Labels
+const STATUS_META = {
+    available: { label: "Disponível", class: "available" },
+    borrowed: { label: "Emprestado", class: "borrowed" },
+    reserved: { label: "Reservado", class: "reserved" },
+    maintenance: { label: "Manutenção", class: "maintenance" },
+};
+
 const state = {
-  books: [],
-  selectedId: null,
-  total: 0,
-  filters: {
-    q: "",
-    author: "",
-    yearMin: "",
-    yearMax: "",
-    sort: "created_at",
-    order: "desc",
-    limit: 20,
-  },
+    books: [],
+    selectedId: null,
+    total: 0,
+    isEditing: false,
+    filters: {
+        q: "",
+        author: "",
+        yearMin: "",
+        yearMax: "",
+        sort: "created_at",
+        order: "desc",
+        limit: 20,
+    },
 };
 
+// DOM Elements Repository
 const els = {
-  list: document.getElementById("book-list"),
-  listState: document.getElementById("list-state"),
-  resultCount: document.getElementById("result-count"),
-  searchInput: document.getElementById("search-input"),
-  authorInput: document.getElementById("author-input"),
-  yearMin: document.getElementById("year-min"),
-  yearMax: document.getElementById("year-max"),
-  sortSelect: document.getElementById("sort-select"),
-  orderSelect: document.getElementById("order-select"),
-  limitSelect: document.getElementById("limit-select"),
-  refreshBtn: document.getElementById("refresh-btn"),
-  seedBtn: document.getElementById("seed-btn"),
-  clearBtn: document.getElementById("clear-btn"),
-  statTotal: document.getElementById("stat-total"),
-  statLatest: document.getElementById("stat-latest"),
-  statIsbn: document.getElementById("stat-isbn"),
-  selectedPill: document.getElementById("selected-pill"),
-  inspectorEmpty: document.querySelector(".inspector-empty"),
-  inspectorContent: document.querySelector(".inspector-content"),
-  detailTitle: document.getElementById("detail-title"),
-  detailAuthor: document.getElementById("detail-author"),
-  detailYear: document.getElementById("detail-year"),
-  detailIsbn: document.getElementById("detail-isbn"),
-  detailId: document.getElementById("detail-id"),
-  deleteBtn: document.getElementById("delete-btn"),
-  createForm: document.getElementById("create-form"),
-  editForm: document.getElementById("edit-form"),
-  toast: document.getElementById("toast"),
+    // Basic List Elements
+    list: document.getElementById("book-list"),
+    listStatus: document.getElementById("list-state"),
+    resultCount: document.getElementById("result-count"),
+    
+    // Filters
+    searchInput: document.getElementById("search-input"),
+    authorInput: document.getElementById("author-input"),
+    yearMin: document.getElementById("year-min"),
+    yearMax: document.getElementById("year-max"),
+    sortSelect: document.getElementById("sort-select"),
+    orderSelect: document.getElementById("order-select"),
+    limitSelect: document.getElementById("limit-select"),
+    
+    // Actions
+    refreshBtn: document.getElementById("refresh-btn"),
+    seedBtn: document.getElementById("seed-btn"),
+    clearBtn: document.getElementById("clear-btn"),
+    
+    // Stats
+    statTotal: document.getElementById("stat-total"),
+    statLatest: document.getElementById("stat-latest"),
+    statIsbn: document.getElementById("stat-isbn"),
+    
+    // Inspector Details
+    inspector: document.getElementById("inspector"),
+    inspectorPlaceholder: document.getElementById("inspector-placeholder"),
+    inspectorContent: document.getElementById("inspector-content"),
+    detailTitle: document.getElementById("detail-title"),
+    detailAuthor: document.getElementById("detail-author"),
+    detailStatus: document.getElementById("detail-status"),
+    detailYear: document.getElementById("detail-year"),
+    detailIsbn: document.getElementById("detail-isbn"),
+    detailId: document.getElementById("detail-id"),
+    detailDesc: document.getElementById("detail-description-text"),
+    detailCoverImg: document.getElementById("detail-cover-img"),
+    detailCoverFallback: document.getElementById("detail-cover-fallback"),
+    selectedPill: document.getElementById("selected-pill"),
+    
+    // Form Elements
+    bookForm: document.getElementById("book-form"),
+    formTitle: document.getElementById("form-title"),
+    submitBtn: document.getElementById("submit-btn"),
+    submitBtnText: document.querySelector("#submit-btn span"),
+    cancelEditBtn: document.getElementById("cancel-edit-btn"),
+    lookupBtn: document.getElementById("lookup-btn"),
+    
+    // Form Inputs
+    formId: document.getElementById("form-book-id"),
+    formIsbn: document.getElementById("form-isbn"),
+    formTitleInput: document.getElementById("form-title-input"),
+    formAuthorInput: document.getElementById("form-author-input"),
+    formYearInput: document.getElementById("form-year-input"),
+    formStatusInput: document.getElementById("form-status-input"),
+    formDescInput: document.getElementById("form-desc-input"),
+    
+    // Misc
+    toastContainer: document.getElementById("toast-container"),
+    deleteBtn: document.getElementById("delete-btn"),
+    editModeBtn: document.getElementById("edit-mode-btn"),
 };
 
-const editFields = {
-  title: els.editForm.querySelector('input[name="title"]'),
-  author: els.editForm.querySelector('input[name="author"]'),
-  year: els.editForm.querySelector('input[name="year"]'),
-  isbn: els.editForm.querySelector('input[name="isbn"]'),
-};
-
+/**
+ * UTILS
+ */
 const debounce = (fn, wait = 400) => {
-  let timer;
-  return (...args) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn(...args), wait);
-  };
+    let timer;
+    return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn(...args), wait);
+    };
 };
 
-const showToast = (message, tone = "info") => {
-  els.toast.textContent = message;
-  els.toast.classList.remove("hidden");
-  els.toast.style.background = tone === "error" ? "#d1495b" : "#1a1c1f";
-  setTimeout(() => els.toast.classList.add("hidden"), 2200);
+const showToast = (message, type = "success") => {
+    const toast = document.createElement("div");
+    toast.className = `toast toast-${type}`;
+    
+    const icon = type === "success" ? "check-circle" : (type === "error" ? "alert-circle" : "info");
+    toast.innerHTML = `<i data-lucide="${icon}"></i> <span>${message}</span>`;
+    
+    els.toastContainer.appendChild(toast);
+    lucide.createIcons();
+    
+    setTimeout(() => {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateX(100%)";
+        setTimeout(() => toast.remove(), 400);
+    }, 4000);
 };
 
-const buildQuery = () => {
-  const params = new URLSearchParams();
-  if (state.filters.q.trim().length >= 2) params.set("q", state.filters.q.trim());
-  if (state.filters.author.trim()) params.set("author", state.filters.author.trim());
-  if (state.filters.yearMin) params.set("year_min", state.filters.yearMin);
-  if (state.filters.yearMax) params.set("year_max", state.filters.yearMax);
-  params.set("limit", state.filters.limit);
-  params.set("sort", state.filters.sort);
-  params.set("order", state.filters.order);
-  return params.toString();
-};
-
+/**
+ * API CALLS
+ */
 const fetchBooks = async () => {
-  els.listState.textContent = "Carregando...";
-  if (state.filters.yearMin && state.filters.yearMax) {
-    const minYear = Number(state.filters.yearMin);
-    const maxYear = Number(state.filters.yearMax);
-    if (minYear > maxYear) {
-      els.listState.textContent = "Ajuste o intervalo de anos.";
-      showToast("Ano minimo maior que ano maximo.", "error");
-      return;
+    els.listStatus.classList.remove("hidden");
+    
+    const params = new URLSearchParams();
+    if (state.filters.q.trim()) params.set("q", state.filters.q.trim());
+    if (state.filters.author.trim()) params.set("author", state.filters.author.trim());
+    if (state.filters.yearMin) params.set("year_min", state.filters.yearMin);
+    if (state.filters.yearMax) params.set("year_max", state.filters.yearMax);
+    params.set("limit", state.filters.limit);
+    params.set("sort", state.filters.sort);
+    params.set("order", state.filters.order);
+
+    try {
+        const response = await fetch(`${bookEndpoint}?${params}`);
+        if (!response.ok) throw new Error("Erro ao carregar acervo.");
+        
+        const data = await response.json();
+        state.books = data;
+        state.total = parseInt(response.headers.get("X-Total-Count") || data.length);
+        
+        renderBooks();
+        renderStats();
+    } catch (err) {
+        showToast(err.message, "error");
+    } finally {
+        els.listStatus.classList.add("hidden");
     }
-  }
-  try {
-    const response = await fetch(`${bookEndpoint}?${buildQuery()}`);
-    if (!response.ok) throw new Error("Erro ao buscar livros");
-    const data = await response.json();
-    state.total = Number(response.headers.get("X-Total-Count") || data.length);
-    state.books = data;
-    renderBooks();
-    renderStats();
-  } catch (err) {
-    els.listState.textContent = "Nao foi possivel carregar.";
-    showToast(err.message, "error");
-  }
 };
 
-const renderBooks = () => {
-  els.list.innerHTML = "";
-  els.listState.textContent = state.books.length ? "" : "Nenhum resultado encontrado.";
-  els.resultCount.textContent = `${state.total} resultados`;
+const createOrUpdateBook = async (payload) => {
+    const isEditing = !!payload.id;
+    const url = isEditing ? `${bookEndpoint}${payload.id}` : bookEndpoint;
+    const method = isEditing ? "PUT" : "POST";
 
-  state.books.forEach((book, index) => {
-    const card = document.createElement("div");
-    card.className = "book-card";
-    if (book.id === state.selectedId) card.classList.add("active");
-    card.style.animationDelay = `${index * 0.03}s`;
-    card.innerHTML = `
-      <h4>${book.title}</h4>
-      <p class="muted">${book.author}</p>
-      <div class="detail-meta">
-        <span>${book.year || "Ano nao informado"}</span>
-        <span>${book.isbn || "ISBN livre"}</span>
-      </div>
-    `;
-    card.addEventListener("click", () => selectBook(book));
-    els.list.appendChild(card);
-  });
+    const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.detail || "Erro ao salvar livro.");
+    }
+    return response.json();
+};
+
+const deleteBook = async (id) => {
+    const response = await fetch(`${bookEndpoint}${id}`, { method: "DELETE" });
+    if (!response.ok) throw new Error("Erro ao excluir livro.");
+};
+
+const lookupISBN = async (isbn) => {
+    const response = await fetch(`${apiBase}/books/lookup/${isbn}`);
+    if (!response.ok) throw new Error("ISBN não encontrado ou falha na API externa.");
+    return response.json();
+};
+
+/**
+ * RENDERING
+ */
+const renderBooks = () => {
+    els.list.innerHTML = "";
+    els.resultCount.textContent = `${state.total} resultados`;
+
+    state.books.forEach((book, index) => {
+        const item = document.createElement("div");
+        item.className = `book-item ${book.id === state.selectedId ? "active" : ""}`;
+        item.style.animationDelay = `${index * 0.05}s`;
+        
+        const statusCfg = STATUS_META[book.status] || STATUS_META.available;
+        
+        item.innerHTML = `
+            <div class="book-main-info">
+                <span class="book-title">${book.title}</span>
+                <span class="book-author">${book.author}</span>
+            </div>
+            <div class="book-meta">
+                <span class="book-year">${book.year || "-"}</span>
+                <div class="status-dot ${statusCfg.class}" title="${statusCfg.label}"></div>
+            </div>
+        `;
+        
+        item.onclick = () => selectBook(book);
+        els.list.appendChild(item);
+    });
 };
 
 const renderStats = () => {
-  els.statTotal.textContent = state.total;
-  const years = state.books.map((book) => book.year).filter(Boolean);
-  els.statLatest.textContent = years.length ? Math.max(...years) : "-";
-  const isbnCount = state.books.filter((book) => book.isbn).length;
-  els.statIsbn.textContent = isbnCount;
+    els.statTotal.textContent = state.total;
+    const years = state.books.map(b => b.year).filter(y => y > 0);
+    els.statLatest.textContent = years.length ? Math.max(...years) : "-";
+    els.statIsbn.textContent = state.books.filter(b => b.isbn).length;
 };
 
 const selectBook = (book) => {
-  state.selectedId = book.id;
-  els.selectedPill.textContent = `Selecionado #${book.id}`;
-  els.inspectorEmpty.classList.add("hidden");
-  els.inspectorContent.classList.remove("hidden");
-  els.detailTitle.textContent = book.title;
-  els.detailAuthor.textContent = book.author;
-  els.detailYear.textContent = book.year ? `Ano ${book.year}` : "Ano nao informado";
-  els.detailIsbn.textContent = book.isbn ? `ISBN ${book.isbn}` : "Sem ISBN";
-  els.detailId.textContent = `ID ${book.id}`;
-  els.editForm.dataset.id = book.id;
-  editFields.title.value = book.title;
-  editFields.author.value = book.author;
-  editFields.year.value = book.year || "";
-  editFields.isbn.value = book.isbn || "";
-  renderBooks();
+    state.selectedId = book.id;
+    
+    // UI Updates
+    els.inspectorPlaceholder.classList.add("hidden");
+    els.inspectorContent.classList.remove("hidden");
+    els.selectedPill.classList.remove("hidden");
+    
+    els.detailTitle.textContent = book.title;
+    els.detailAuthor.textContent = book.author;
+    els.detailYear.textContent = book.year || "-";
+    els.detailIsbn.textContent = book.isbn || "-";
+    els.detailId.textContent = `#${book.id}`;
+    els.detailDesc.textContent = book.description || "Nenhuma descrição disponível para este volume.";
+    
+    const statusCfg = STATUS_META[book.status] || STATUS_META.available;
+    els.detailStatus.textContent = statusCfg.label;
+    els.detailStatus.className = `status-tag ${statusCfg.class}`;
+    
+    if (book.cover_url) {
+        els.detailCoverImg.src = book.cover_url;
+        els.detailCoverImg.classList.remove("hidden");
+        els.detailCoverFallback.classList.add("hidden");
+    } else {
+        els.detailCoverImg.classList.add("hidden");
+        els.detailCoverFallback.classList.remove("hidden");
+    }
+
+    renderBooks();
+    
+    // If we were editing another book, reset form to normal
+    if (state.isEditing) exitEditMode();
 };
 
-const clearSelection = () => {
-  state.selectedId = null;
-  els.selectedPill.textContent = "Nenhum selecionado";
-  els.inspectorEmpty.classList.remove("hidden");
-  els.inspectorContent.classList.add("hidden");
-  els.editForm.dataset.id = "";
-  els.editForm.reset();
-  renderBooks();
+const enterEditMode = () => {
+    const book = state.books.find(b => b.id === state.selectedId);
+    if (!book) return;
+
+    state.isEditing = true;
+    els.formTitle.textContent = "Editar Registro";
+    els.submitBtnText.textContent = "Atualizar Livro";
+    els.cancelEditBtn.classList.remove("hidden");
+    
+    // Fill Form
+    els.formId.value = book.id;
+    els.formIsbn.value = book.isbn || "";
+    els.formTitleInput.value = book.title;
+    els.formAuthorInput.value = book.author;
+    els.formYearInput.value = book.year || "";
+    els.formStatusInput.value = book.status;
+    els.formDescInput.value = book.description || "";
+    
+    els.formIsbn.focus();
+    showToast("Modo de edição ativado.", "info");
 };
 
-const createBook = async (payload) => {
-  const response = await fetch(bookEndpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Falha ao criar livro");
-  }
-  return response.json();
+const exitEditMode = () => {
+    state.isEditing = false;
+    els.formTitle.textContent = "Novo Registro";
+    els.submitBtnText.textContent = "Salvar Registro";
+    els.cancelEditBtn.classList.add("hidden");
+    els.bookForm.reset();
+    els.formId.value = "";
 };
 
-const updateBook = async (bookId, payload) => {
-  const response = await fetch(`${bookEndpoint}${bookId}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Falha ao atualizar livro");
-  }
-  return response.json();
+/**
+ * EVENT LISTENERS
+ */
+els.refreshBtn.onclick = () => fetchBooks();
+
+els.seedBtn.onclick = async () => {
+    const examples = [
+        { title: "Clean Code", author: "Robert C. Martin", year: 2008, isbn: "0132350882", status: "available" },
+        { title: "Pragmatic Programmer", author: "Andrew Hunt", year: 1999, isbn: "020161622X", status: "available" }
+    ];
+    try {
+        for (const ex of examples) await createOrUpdateBook(ex);
+        showToast("Exemplos criados!");
+        fetchBooks();
+    } catch (err) {
+        showToast(err.message, "error");
+    }
 };
 
-const deleteBook = async (bookId) => {
-  const response = await fetch(`${bookEndpoint}${bookId}`, { method: "DELETE" });
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Falha ao remover livro");
-  }
-};
-
-const seedExample = async () => {
-  const example = {
-    title: "Cosmos e o Codigo",
-    author: "Lia Matins",
-    year: 2026,
-    isbn: `LS-${Math.floor(Math.random() * 9000 + 1000)}`,
-  };
-  await createBook(example);
-  await fetchBooks();
-  showToast("Livro exemplo criado.");
-};
-
-els.searchInput.addEventListener(
-  "input",
-  debounce((event) => {
-    state.filters.q = event.target.value;
+els.clearBtn.onclick = () => {
+    els.searchInput.value = "";
+    els.authorInput.value = "";
+    els.yearMin.value = "";
+    els.yearMax.value = "";
+    state.filters = { ...state.filters, q: "", author: "", yearMin: "", yearMax: "" };
     fetchBooks();
-  })
-);
+};
 
-els.authorInput.addEventListener(
-  "input",
-  debounce((event) => {
-    state.filters.author = event.target.value;
+const updateFilter = (key, value) => {
+    state.filters[key] = value;
     fetchBooks();
-  })
-);
+};
 
-els.yearMin.addEventListener("change", (event) => {
-  state.filters.yearMin = event.target.value;
-  fetchBooks();
-});
+els.searchInput.oninput = debounce(e => updateFilter("q", e.target.value));
+els.authorInput.oninput = debounce(e => updateFilter("author", e.target.value));
+els.yearMin.onchange = e => updateFilter("yearMin", e.target.value);
+els.yearMax.onchange = e => updateFilter("yearMax", e.target.value);
+els.sortSelect.onchange = e => updateFilter("sort", e.target.value);
+els.orderSelect.onchange = e => updateFilter("order", e.target.value);
+els.limitSelect.onchange = e => updateFilter("limit", parseInt(e.target.value));
 
-els.yearMax.addEventListener("change", (event) => {
-  state.filters.yearMax = event.target.value;
-  fetchBooks();
-});
+els.bookForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const formData = new FormData(els.bookForm);
+    const payload = Object.fromEntries(formData.entries());
+    
+    // Clean payload
+    if (!payload.id) delete payload.id;
+    if (!payload.year) delete payload.year;
+    else payload.year = parseInt(payload.year);
+    
+    try {
+        const saved = await createOrUpdateBook(payload);
+        showToast(payload.id ? "Registro atualizado!" : "Livro cadastrado!");
+        exitEditMode();
+        await fetchBooks();
+        selectBook(saved);
+    } catch (err) {
+        showToast(err.message, "error");
+    }
+};
 
-els.sortSelect.addEventListener("change", (event) => {
-  state.filters.sort = event.target.value;
-  fetchBooks();
-});
+els.cancelEditBtn.onclick = exitEditMode;
 
-els.orderSelect.addEventListener("change", (event) => {
-  state.filters.order = event.target.value;
-  fetchBooks();
-});
+els.editModeBtn.onclick = enterEditMode;
 
-els.limitSelect.addEventListener("change", (event) => {
-  state.filters.limit = Number(event.target.value);
-  fetchBooks();
-});
+els.deleteBtn.onclick = async () => {
+    if (!state.selectedId) return;
+    if (!confirm("Tem certeza que deseja excluir este registro?")) return;
+    
+    try {
+        await deleteBook(state.selectedId);
+        showToast("Registro removido.");
+        state.selectedId = null;
+        els.inspectorContent.classList.add("hidden");
+        els.inspectorPlaceholder.classList.remove("hidden");
+        els.selectedPill.classList.add("hidden");
+        fetchBooks();
+    } catch (err) {
+        showToast(err.message, "error");
+    }
+};
 
-els.refreshBtn.addEventListener("click", fetchBooks);
-els.seedBtn.addEventListener("click", seedExample);
-els.clearBtn.addEventListener("click", () => {
-  state.filters = { ...state.filters, q: "", author: "", yearMin: "", yearMax: "" };
-  els.searchInput.value = "";
-  els.authorInput.value = "";
-  els.yearMin.value = "";
-  els.yearMax.value = "";
-  fetchBooks();
-});
+els.lookupBtn.onclick = async () => {
+    const isbn = els.formIsbn.value.trim();
+    if (!isbn) {
+        showToast("Digite um ISBN primeiro.", "info");
+        return;
+    }
+    
+    els.lookupBtn.innerHTML = '<i class="loader-spinner" style="width:14px; height:14px; border-width:1px"></i>';
+    try {
+        const data = await lookupISBN(isbn);
+        if (data.title) els.formTitleInput.value = data.title;
+        if (data.author) els.formAuthorInput.value = data.author;
+        if (data.year) els.formYearInput.value = data.year;
+        if (data.description) els.formDescInput.value = data.description;
+        showToast("Dados recuperados via ISBN.");
+    } catch (err) {
+        showToast(err.message, "error");
+    } finally {
+        els.lookupBtn.innerHTML = '<i data-lucide="zap"></i>';
+        lucide.createIcons();
+    }
+};
 
-els.createForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const formData = new FormData(els.createForm);
-  const payload = Object.fromEntries(formData.entries());
-  if (payload.year === "") delete payload.year;
-  if (payload.isbn === "") delete payload.isbn;
-  payload.year = payload.year ? Number(payload.year) : undefined;
-  try {
-    await createBook(payload);
-    els.createForm.reset();
-    await fetchBooks();
-    showToast("Livro criado com sucesso.");
-  } catch (err) {
-    showToast(err.message, "error");
-  }
-});
-
-els.editForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const bookId = els.editForm.dataset.id;
-  if (!bookId) {
-    showToast("Selecione um livro primeiro.", "error");
-    return;
-  }
-  const formData = new FormData(els.editForm);
-  const payload = Object.fromEntries(formData.entries());
-  if (payload.year === "") delete payload.year;
-  if (payload.isbn === "") delete payload.isbn;
-  payload.year = payload.year ? Number(payload.year) : undefined;
-  try {
-    const updated = await updateBook(bookId, payload);
-    await fetchBooks();
-    selectBook(updated);
-    showToast("Livro atualizado.");
-  } catch (err) {
-    showToast(err.message, "error");
-  }
-});
-
-els.deleteBtn.addEventListener("click", async () => {
-  const bookId = state.selectedId;
-  if (!bookId) return;
-  if (!confirm("Deseja remover este livro?")) return;
-  try {
-    await deleteBook(bookId);
-    showToast("Livro removido.");
-    clearSelection();
-    await fetchBooks();
-  } catch (err) {
-    showToast(err.message, "error");
-  }
-});
-
+// Start
 fetchBooks();
+lucide.createIcons();

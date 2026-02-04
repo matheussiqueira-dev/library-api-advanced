@@ -3,197 +3,305 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{{ project_name }} | Library Studio</title>
+    <title>{{ project_name }} | Advanced Library Management</title>
     <link rel="stylesheet" href="/static/styles.css" />
+    <script src="https://unpkg.com/lucide@latest"></script>
   </head>
-  <body>
-    <div class="backdrop">
-      <div class="orb orb-a"></div>
-      <div class="orb orb-b"></div>
-      <div class="orb orb-c"></div>
+  <body class="dark-theme">
+    <div class="glow-container">
+      <div class="glow-orb glow-1"></div>
+      <div class="glow-orb glow-2"></div>
+      <div class="glow-orb glow-3"></div>
     </div>
 
-    <header class="topbar">
-      <div class="brand">
-        <span class="brand-mark">LS</span>
-        <div>
-          <p class="eyebrow">Library Studio</p>
-          <h1>{{ project_name }}</h1>
+    <header class="navbar">
+      <div class="nav-brand">
+        <div class="logo-box">
+          <i data-lucide="library" class="logo-icon"></i>
+        </div>
+        <div class="brand-text">
+          <span class="brand-name">Library<span class="accent-text">Studio</span></span>
+          <span class="brand-tagline">Advanced Management System</span>
         </div>
       </div>
-      <div class="topbar-actions">
-        <button id="refresh-btn" class="ghost">Atualizar</button>
-        <a class="ghost" href="/docs" target="_blank" rel="noreferrer">Docs</a>
-      </div>
+      <nav class="nav-links">
+        <button id="refresh-btn" class="nav-btn" title="Atualizar dados">
+          <i data-lucide="rotate-cw"></i>
+        </button>
+        <a href="/docs" target="_blank" class="nav-link" title="API Documentation">
+          <i data-lucide="file-text"></i>
+          <span>Docs</span>
+        </a>
+      </nav>
     </header>
 
-    <main class="shell">
-      <section class="hero">
-        <div>
-          <p class="badge">Interface inteligente</p>
-          <h2>Curadoria viva para sua biblioteca</h2>
-          <p class="subtitle">
-            Explore, refine e gerencie seu acervo com velocidade. Pesquisa sem friccao,
-            visualizacao rica e controle total em um unico painel.
-          </p>
-          <div class="quick-actions">
-            <button id="seed-btn" class="primary">Adicionar exemplo</button>
-            <button id="clear-btn" class="ghost">Limpar filtros</button>
+    <main class="container">
+      <!-- Dashboard Stats -->
+      <section class="dashboard-grid">
+        <div class="hero-card">
+          <div class="hero-content">
+            <span class="badge">Nível Senior</span>
+            <h1 class="hero-title">Gestão Inteligente <br/>de <span class="accent-text">Acervo</span></h1>
+            <p class="hero-desc">
+              Explore sua biblioteca com velocidade extrema, filtros avançados e curadoria automática via ISBN.
+            </p>
+            <div class="hero-actions">
+              <button id="seed-btn" class="btn-primary">
+                <i data-lucide="plus-circle"></i>
+                Adicionar Exemplos
+              </button>
+              <button id="clear-btn" class="btn-outline">
+                <i data-lucide="filter-x"></i>
+                Limpar Filtros
+              </button>
+            </div>
           </div>
         </div>
-        <div class="hero-stats">
-          <div class="stat-card">
-            <p>Total</p>
-            <h3 id="stat-total">0</h3>
+
+        <div class="stats-sidebar">
+          <div class="stat-box">
+            <div class="stat-icon"><i data-lucide="book"></i></div>
+            <div class="stat-info">
+              <span class="stat-label">Total de Livros</span>
+              <h3 id="stat-total" class="stat-value">0</h3>
+            </div>
           </div>
-          <div class="stat-card">
-            <p>Ultimo ano</p>
-            <h3 id="stat-latest">-</h3>
+          <div class="stat-box">
+            <div class="stat-icon"><i data-lucide="calendar"></i></div>
+            <div class="stat-info">
+              <span class="stat-label">Última Adição</span>
+              <h3 id="stat-latest" class="stat-value">-</h3>
+            </div>
           </div>
-          <div class="stat-card">
-            <p>ISBNs ativos</p>
-            <h3 id="stat-isbn">0</h3>
+          <div class="stat-box">
+            <div class="stat-icon"><i data-lucide="hash"></i></div>
+            <div class="stat-info">
+              <span class="stat-label">ISBNs Ativos</span>
+              <h3 id="stat-isbn" class="stat-value">0</h3>
+            </div>
           </div>
         </div>
       </section>
 
-      <section class="grid">
-        <div class="panel list-panel">
-          <div class="panel-header">
-            <h3>Explorar acervo</h3>
-            <span id="result-count" class="chip">0 resultados</span>
-          </div>
-          <div class="filters">
-            <label>
-              <span>Buscar</span>
-              <input id="search-input" type="search" placeholder="Titulo ou autor" />
-            </label>
-            <label>
-              <span>Autor</span>
-              <input id="author-input" type="text" placeholder="Nome do autor" />
-            </label>
-            <div class="row">
-              <label>
-                <span>Ano min</span>
-                <input id="year-min" type="number" min="1000" max="2100" placeholder="1900" />
-              </label>
-              <label>
-                <span>Ano max</span>
-                <input id="year-max" type="number" min="1000" max="2100" placeholder="2026" />
-              </label>
+      <!-- Main Interface -->
+      <section class="interface-grid">
+        <!-- Left Column: Search & List -->
+        <div class="card explorer-card">
+          <div class="card-header">
+            <div class="header-main">
+              <i data-lucide="search"></i>
+              <h2>Explorar Acervo</h2>
             </div>
-            <div class="row">
-              <label>
-                <span>Ordenar</span>
+            <span id="result-count" class="count-badge">0 resultados</span>
+          </div>
+
+          <div class="search-panel">
+            <div class="search-row main-search">
+              <div class="input-group">
+                <i data-lucide="search" class="input-icon"></i>
+                <input id="search-input" type="search" placeholder="Buscar por título ou autor..." />
+              </div>
+            </div>
+            
+            <div class="search-row advanced-filters">
+              <div class="input-group">
+                <i data-lucide="user" class="input-icon"></i>
+                <input id="author-input" type="text" placeholder="Autor" />
+              </div>
+              <div class="year-range">
+                <input id="year-min" type="number" placeholder="Ano Min" min="1000" max="2100" />
+                <span class="range-sep">-</span>
+                <input id="year-max" type="number" placeholder="Ano Max" min="1000" max="2100" />
+              </div>
+            </div>
+
+            <div class="search-row sort-controls">
+              <div class="select-group">
+                <label>Ordenar por</label>
                 <select id="sort-select">
-                  <option value="created_at">Criacao</option>
-                  <option value="title">Titulo</option>
+                  <option value="created_at">Data de Criação</option>
+                  <option value="title">Título</option>
                   <option value="author">Autor</option>
                   <option value="year">Ano</option>
                 </select>
-              </label>
-              <label>
-                <span>Ordem</span>
+              </div>
+              <div class="select-group">
+                <label>Ordem</label>
                 <select id="order-select">
-                  <option value="desc">Desc</option>
-                  <option value="asc">Asc</option>
+                  <option value="desc">Decrescente</option>
+                  <option value="asc">Crescente</option>
                 </select>
-              </label>
-              <label>
-                <span>Limite</span>
+              </div>
+              <div class="select-group">
+                <label>Limite</label>
                 <select id="limit-select">
                   <option value="10">10</option>
                   <option value="20" selected>20</option>
                   <option value="50">50</option>
                 </select>
-              </label>
+              </div>
             </div>
           </div>
 
-          <div id="list-state" class="list-state">Carregando...</div>
-          <div id="book-list" class="book-list"></div>
+          <div id="list-state" class="list-status">
+            <div class="loader-spinner"></div>
+            <span>Sincronizando biblioteca...</span>
+          </div>
+          
+          <div id="book-list" class="book-grid-list">
+            <!-- Books injected here -->
+          </div>
         </div>
 
-        <div class="panel detail-panel">
-          <div class="panel-header">
-            <h3>Detalhes & controle</h3>
-            <span id="selected-pill" class="chip">Nenhum selecionado</span>
-          </div>
-
-          <div id="inspector" class="inspector">
-            <div class="inspector-empty">
-              <h4>Selecione um livro</h4>
-              <p>Veja detalhes ricos, atualize metadados e gerencie o registro.</p>
-            </div>
-            <div class="inspector-content hidden">
-              <h4 id="detail-title"></h4>
-              <p id="detail-author" class="muted"></p>
-              <div class="detail-meta">
-                <span id="detail-year"></span>
-                <span id="detail-isbn"></span>
-                <span id="detail-id"></span>
+        <!-- Right Column: Details & Creator -->
+        <div class="side-panel">
+          
+          <!-- Detail View -->
+          <div id="inspector" class="card inspector-card">
+            <div class="card-header">
+              <div class="header-main">
+                <i data-lucide="info"></i>
+                <h2>Detalhes</h2>
               </div>
+              <span id="selected-pill" class="status-pill hidden">Selecionado</span>
+            </div>
+
+            <div id="inspector-placeholder" class="placeholder-state">
+              <div class="placeholder-icon"><i data-lucide="mouse-pointer-2"></i></div>
+              <p>Selecione um livro para visualizar detalhes avançados e gerenciar metadados.</p>
+            </div>
+
+            <div id="inspector-content" class="book-details hidden">
+              <div class="details-top">
+                <div id="detail-cover-container" class="detail-cover">
+                  <img id="detail-cover-img" src="" alt="Capa do Livro" class="hidden" />
+                  <div id="detail-cover-fallback" class="cover-fallback">
+                    <i data-lucide="book-open"></i>
+                  </div>
+                </div>
+                <div class="details-header">
+                  <h3 id="detail-title"></h3>
+                  <p id="detail-author" class="detail-author"></p>
+                  <div id="detail-status" class="status-tag"></div>
+                </div>
+              </div>
+
+              <div class="detail-info-grid">
+                <div class="info-item">
+                  <span class="info-label">Ano</span>
+                  <span id="detail-year" class="info-value">-</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">ISBN</span>
+                  <span id="detail-isbn" class="info-value">-</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">ID</span>
+                  <span id="detail-id" class="info-value">-</span>
+                </div>
+              </div>
+
+              <div class="detail-description">
+                <span class="info-label">Descrição</span>
+                <p id="detail-description-text"></p>
+              </div>
+
               <div class="detail-actions">
-                <button id="delete-btn" class="danger">Remover</button>
+                <button id="edit-mode-btn" class="btn-ghost">
+                  <i data-lucide="edit-3"></i> Editar
+                </button>
+                <button id="delete-btn" class="btn-danger">
+                  <i data-lucide="trash-2"></i> Excluir
+                </button>
               </div>
             </div>
           </div>
 
-          <form id="create-form" class="form-card">
-            <h4>Novo livro</h4>
-            <label>
-              <span>Titulo</span>
-              <input name="title" type="text" required maxlength="200" />
-            </label>
-            <label>
-              <span>Autor</span>
-              <input name="author" type="text" required maxlength="100" />
-            </label>
-            <div class="row">
-              <label>
-                <span>Ano</span>
-                <input name="year" type="number" min="1000" max="2100" />
-              </label>
-              <label>
-                <span>ISBN</span>
-                <input name="isbn" type="text" maxlength="20" />
-              </label>
+          <!-- Create/Edit Form -->
+          <div class="card form-card">
+            <div class="card-header">
+              <div class="header-main">
+                <i data-lucide="plus"></i>
+                <h2 id="form-title">Novo Registro</h2>
+              </div>
+              <button id="cancel-edit-btn" class="btn-icon hidden" title="Cancelar edição">
+                <i data-lucide="x"></i>
+              </button>
             </div>
-            <button type="submit" class="primary">Salvar</button>
-          </form>
 
-          <form id="edit-form" class="form-card muted-card">
-            <h4>Atualizar selecao</h4>
-            <label>
-              <span>Titulo</span>
-              <input name="title" type="text" maxlength="200" />
-            </label>
-            <label>
-              <span>Autor</span>
-              <input name="author" type="text" maxlength="100" />
-            </label>
-            <div class="row">
-              <label>
-                <span>Ano</span>
-                <input name="year" type="number" min="1000" max="2100" />
-              </label>
-              <label>
-                <span>ISBN</span>
-                <input name="isbn" type="text" maxlength="20" />
-              </label>
-            </div>
-            <button type="submit" class="ghost">Atualizar</button>
-          </form>
+            <form id="book-form">
+              <input type="hidden" name="id" id="form-book-id" />
+              
+              <div class="form-row">
+                <div class="input-group">
+                  <label>ISBN</label>
+                  <div class="isbn-field">
+                    <input name="isbn" id="form-isbn" type="text" placeholder="Ex: 9780..." maxlength="20" />
+                    <button type="button" id="lookup-btn" class="btn-lookup" title="Autopreencher via ISBN">
+                      <i data-lucide="zap"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="input-group">
+                  <label>Título *</label>
+                  <input name="title" id="form-title-input" type="text" required maxlength="200" placeholder="Título do livro" />
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="input-group">
+                  <label>Autor *</label>
+                  <input name="author" id="form-author-input" type="text" required maxlength="100" placeholder="Nome do autor" />
+                </div>
+              </div>
+
+              <div class="form-row col-2">
+                <div class="input-group">
+                  <label>Ano</label>
+                  <input name="year" id="form-year-input" type="number" min="1000" max="2100" placeholder="YYYY" />
+                </div>
+                <div class="input-group">
+                  <label>Status</label>
+                  <select name="status" id="form-status-input">
+                    <option value="available">Disponível</option>
+                    <option value="borrowed">Emprestado</option>
+                    <option value="reserved">Reservado</option>
+                    <option value="maintenance">Manutenção</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="input-group">
+                  <label>Descrição</label>
+                  <textarea name="description" id="form-desc-input" rows="3" placeholder="Sinopse breve..."></textarea>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button type="submit" id="submit-btn" class="btn-primary full-width">
+                  <i data-lucide="save"></i>
+                  <span>Salvar Registro</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
         </div>
       </section>
     </main>
 
-    <div id="toast" class="toast hidden"></div>
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-stack"></div>
 
     <script>
       window.APP_CONFIG = {
         apiBase: "{{ api_base }}",
       };
+      lucide.createIcons();
     </script>
     <script src="/static/app.js"></script>
   </body>
