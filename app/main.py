@@ -50,6 +50,11 @@ app = FastAPI(
     title=settings.PROJECT_NAME,
     description=settings.PROJECT_DESCRIPTION,
     version=settings.VERSION,
+    contact={
+        "name": "Matheus Siqueira",
+        "url": "https://www.matheussiqueira.dev",
+        "email": "hellomatheusdev@gmail.com",
+    },
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     # Served below with a pinned bundle: FastAPI's default loads the moving redoc@next tag.
     redoc_url=None,
@@ -93,6 +98,7 @@ async def ui(request: Request):
         {
             "api_base": settings.API_V1_STR,
             "project_name": settings.PROJECT_NAME,
+            "version": settings.VERSION,
             "lucide_src": LUCIDE_SCRIPT_URL,
             "lucide_integrity": LUCIDE_SCRIPT_INTEGRITY,
             "ephemeral_data": settings.ephemeral_database,
