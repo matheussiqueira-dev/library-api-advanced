@@ -3,7 +3,7 @@
  * Senior Implementation: Async/Await, Clean Architecture, Reactive State
  */
 
-const apiBase = window.APP_CONFIG?.apiBase || "/api/v1";
+const apiBase = document.body.dataset.apiBase || "/api/v1";
 const bookEndpoint = `${apiBase}/books/`;
 
 // Visual Config & Status Labels
@@ -105,21 +105,62 @@ const debounce = (fn, wait = 400) => {
     };
 };
 
+// Icons are progressive enhancement: the app keeps working if the CDN script fails.
+const renderIcons = () => window.lucide?.createIcons();
+
+const createIcon = (name) => {
+    const icon = document.createElement("i");
+    icon.dataset.lucide = name;
+    return icon;
+};
+
+// Builds an element whose text is always set via textContent (never parsed as HTML).
+const createTextElement = (tag, className, text) => {
+    const el = document.createElement(tag);
+    el.className = className;
+    el.textContent = text;
+    return el;
+};
+
 const showToast = (message, type = "success") => {
     const toast = document.createElement("div");
     toast.className = `toast toast-${type}`;
-    
+
     const icon = type === "success" ? "check-circle" : (type === "error" ? "alert-circle" : "info");
-    toast.innerHTML = `<i data-lucide="${icon}"></i> <span>${message}</span>`;
-    
+    toast.append(createIcon(icon), createTextElement("span", "", message));
+
     els.toastContainer.appendChild(toast);
-    lucide.createIcons();
-    
+    renderIcons();
+
     setTimeout(() => {
         toast.style.opacity = "0";
         toast.style.transform = "translateX(100%)";
         setTimeout(() => toast.remove(), 400);
     }, 4000);
+};
+
+const readError = async (response, fallback) => {
+    if (response.status === 429) {
+        const wait = parseInt(response.headers.get("Retry-After") || "", 10);
+        return Number.isFinite(wait)
+            ? `Muitas requisições. Tente novamente em ${wait}s.`
+            : "Muitas requisições. Tente novamente em instantes.";
+    }
+    try {
+        const body = await response.json();
+        if (typeof body.detail === "string") return body.detail;
+        if (Array.isArray(body.detail)) {
+            return body.detail
+                .map((item) => {
+                    const field = Array.isArray(item.loc) ? item.loc[item.loc.length - 1] : "";
+                    return field ? `${field}: ${item.msg}` : item.msg;
+                })
+                .join("; ");
+        }
+    } catch {
+        // Non-JSON error body: use the generic message below.
+    }
+    return fallback;
 };
 
 /**
@@ -139,11 +180,11 @@ const fetchBooks = async () => {
 
     try {
         const response = await fetch(`${bookEndpoint}?${params}`);
-        if (!response.ok) throw new Error("Erro ao carregar acervo.");
-        
+        if (!response.ok) throw new Error(await readError(response, "Erro ao carregar acervo."));
+
         const data = await response.json();
         state.books = data;
-        state.total = parseInt(response.headers.get("X-Total-Count") || data.length);
+        state.total = parseInt(response.headers.get("X-Total-Count") || data.length, 10);
         
         renderBooks();
         renderStats();
@@ -165,21 +206,20 @@ const createOrUpdateBook = async (payload) => {
         body: JSON.stringify(payload),
     });
 
-    if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.detail || "Erro ao salvar livro.");
-    }
+    if (!response.ok) throw new Error(await readError(response, "Erro ao salvar livro."));
     return response.json();
 };
 
 const deleteBook = async (id) => {
     const response = await fetch(`${bookEndpoint}${id}`, { method: "DELETE" });
-    if (!response.ok) throw new Error("Erro ao excluir livro.");
+    if (!response.ok) throw new Error(await readError(response, "Erro ao excluir livro."));
 };
 
 const lookupISBN = async (isbn) => {
-    const response = await fetch(`${apiBase}/books/lookup/${isbn}`);
-    if (!response.ok) throw new Error("ISBN não encontrado ou falha na API externa.");
+    const response = await fetch(`${apiBase}/books/lookup/${encodeURIComponent(isbn)}`);
+    if (!response.ok) {
+        throw new Error(await readError(response, "ISBN não encontrado ou falha na API externa."));
+    }
     return response.json();
 };
 
@@ -187,28 +227,35 @@ const lookupISBN = async (isbn) => {
  * RENDERING
  */
 const renderBooks = () => {
-    els.list.innerHTML = "";
+    els.list.replaceChildren();
     els.resultCount.textContent = `${state.total} resultados`;
 
     state.books.forEach((book, index) => {
-        const item = document.createElement("div");
-        item.className = `book-item ${book.id === state.selectedId ? "active" : ""}`;
+        const isActive = book.id === state.selectedId;
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = `book-item ${isActive ? "active" : ""}`;
+        if (isActive) item.setAttribute("aria-current", "true");
         item.style.animationDelay = `${index * 0.05}s`;
-        
+
         const statusCfg = STATUS_META[book.status] || STATUS_META.available;
-        
-        item.innerHTML = `
-            <div class="book-main-info">
-                <span class="book-title">${book.title}</span>
-                <span class="book-author">${book.author}</span>
-            </div>
-            <div class="book-meta">
-                <span class="book-year">${book.year || "-"}</span>
-                <div class="status-dot ${statusCfg.class}" title="${statusCfg.label}"></div>
-            </div>
-        `;
-        
-        item.onclick = () => selectBook(book);
+
+        const info = document.createElement("span");
+        info.className = "book-main-info";
+        info.append(
+            createTextElement("span", "book-title", book.title),
+            createTextElement("span", "book-author", book.author),
+        );
+
+        const statusDot = createTextElement("span", `status-dot ${statusCfg.class}`, "");
+        statusDot.title = statusCfg.label;
+
+        const meta = document.createElement("span");
+        meta.className = "book-meta";
+        meta.append(createTextElement("span", "book-year", book.year || "-"), statusDot);
+
+        item.append(info, meta);
+        item.addEventListener("click", () => selectBook(book));
         els.list.appendChild(item);
     });
 };
@@ -239,7 +286,8 @@ const selectBook = (book) => {
     els.detailStatus.textContent = statusCfg.label;
     els.detailStatus.className = `status-tag ${statusCfg.class}`;
     
-    if (book.cover_url) {
+    if (book.cover_url && /^https?:\/\//i.test(book.cover_url)) {
+        els.detailCoverImg.alt = `Capa de ${book.title}`;
         els.detailCoverImg.src = book.cover_url;
         els.detailCoverImg.classList.remove("hidden");
         els.detailCoverFallback.classList.add("hidden");
@@ -248,8 +296,11 @@ const selectBook = (book) => {
         els.detailCoverFallback.classList.remove("hidden");
     }
 
+    // Re-rendering replaces the focused row, so move focus to its replacement.
+    const listHadFocus = els.list.contains(document.activeElement);
     renderBooks();
-    
+    if (listHadFocus) els.list.querySelector('[aria-current="true"]')?.focus();
+
     // If we were editing another book, reset form to normal
     if (state.isEditing) exitEditMode();
 };
@@ -285,9 +336,21 @@ const exitEditMode = () => {
     els.formId.value = "";
 };
 
+const setButtonBusy = (button, busy) => {
+    button.disabled = busy;
+    button.setAttribute("aria-busy", String(busy));
+};
+
+const showCoverFallback = () => {
+    els.detailCoverImg.classList.add("hidden");
+    els.detailCoverFallback.classList.remove("hidden");
+};
+
 /**
  * EVENT LISTENERS
  */
+els.detailCoverImg.addEventListener("error", showCoverFallback);
+
 els.refreshBtn.onclick = () => fetchBooks();
 
 els.seedBtn.onclick = async () => {
@@ -295,12 +358,15 @@ els.seedBtn.onclick = async () => {
         { title: "Clean Code", author: "Robert C. Martin", year: 2008, isbn: "0132350882", status: "available" },
         { title: "Pragmatic Programmer", author: "Andrew Hunt", year: 1999, isbn: "020161622X", status: "available" }
     ];
+    setButtonBusy(els.seedBtn, true);
     try {
         for (const ex of examples) await createOrUpdateBook(ex);
         showToast("Exemplos criados!");
         fetchBooks();
     } catch (err) {
         showToast(err.message, "error");
+    } finally {
+        setButtonBusy(els.seedBtn, false);
     }
 };
 
@@ -336,6 +402,7 @@ els.bookForm.onsubmit = async (e) => {
     if (!payload.year) delete payload.year;
     else payload.year = parseInt(payload.year);
     
+    setButtonBusy(els.submitBtn, true);
     try {
         const saved = await createOrUpdateBook(payload);
         showToast(payload.id ? "Registro atualizado!" : "Livro cadastrado!");
@@ -344,6 +411,8 @@ els.bookForm.onsubmit = async (e) => {
         selectBook(saved);
     } catch (err) {
         showToast(err.message, "error");
+    } finally {
+        setButtonBusy(els.submitBtn, false);
     }
 };
 
@@ -375,7 +444,8 @@ els.lookupBtn.onclick = async () => {
         return;
     }
     
-    els.lookupBtn.innerHTML = '<i class="loader-spinner" style="width:14px; height:14px; border-width:1px"></i>';
+    setButtonBusy(els.lookupBtn, true);
+    els.lookupBtn.replaceChildren(createTextElement("span", "loader-spinner loader-spinner-sm", ""));
     try {
         const data = await lookupISBN(isbn);
         if (data.title) els.formTitleInput.value = data.title;
@@ -386,11 +456,12 @@ els.lookupBtn.onclick = async () => {
     } catch (err) {
         showToast(err.message, "error");
     } finally {
-        els.lookupBtn.innerHTML = '<i data-lucide="zap"></i>';
-        lucide.createIcons();
+        els.lookupBtn.replaceChildren(createIcon("zap"));
+        renderIcons();
+        setButtonBusy(els.lookupBtn, false);
     }
 };
 
 // Start
 fetchBooks();
-lucide.createIcons();
+renderIcons();

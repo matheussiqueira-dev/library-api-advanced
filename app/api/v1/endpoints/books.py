@@ -1,18 +1,29 @@
 from typing import List, Literal, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.isbn import is_valid_isbn, normalize_isbn
+from app.core.rate_limit import lookup_limiter, rate_limited, write_limiter
+from app.core.security import ensure_writes_enabled
 from app.schemas.book import BookCreate, BookResponse, BookUpdate
 from app.services.book_service import BookService
 
 router = APIRouter()
 
+# Public demo: every mutation goes through the kill switch and a per-IP budget.
+WRITE_GUARDS = [Depends(ensure_writes_enabled), Depends(rate_limited(write_limiter))]
+
 async def get_book_service(db: AsyncSession = Depends(get_db)) -> BookService:
     return BookService(db)
 
-@router.post("/", response_model=BookResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=BookResponse,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=WRITE_GUARDS,
+)
 async def create_book(
     book_in: BookCreate,
     service: BookService = Depends(get_book_service)
@@ -49,10 +60,23 @@ async def read_books(
     response.headers["X-Total-Count"] = str(total)
     return books
 
-@router.get("/lookup/{isbn}", response_model=dict)
-async def lookup_isbn(isbn: str, service: BookService = Depends(get_book_service)):
+@router.get(
+    "/lookup/{isbn}",
+    response_model=dict,
+    dependencies=[Depends(rate_limited(lookup_limiter))],
+)
+async def lookup_isbn(
+    isbn: str = Path(..., min_length=10, max_length=20),
+    service: BookService = Depends(get_book_service),
+):
     """Lookup book metadata by ISBN from external API."""
-    data = await service.fetch_book_by_isbn(isbn)
+    normalized = normalize_isbn(isbn)
+    if not normalized or not is_valid_isbn(normalized):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="isbn must be a valid ISBN-10 or ISBN-13",
+        )
+    data = await service.fetch_book_by_isbn(normalized)
     if not data:
         raise HTTPException(status_code=404, detail="ISBN not found in external registry")
     return data
@@ -64,7 +88,7 @@ async def read_book(book_id: int, service: BookService = Depends(get_book_servic
         raise HTTPException(status_code=404, detail="Book not found")
     return book
 
-@router.put("/{book_id}", response_model=BookResponse)
+@router.put("/{book_id}", response_model=BookResponse, dependencies=WRITE_GUARDS)
 async def update_book(
     book_id: int,
     book_in: BookUpdate,
@@ -75,7 +99,7 @@ async def update_book(
         raise HTTPException(status_code=404, detail="Book not found")
     return book
 
-@router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=WRITE_GUARDS)
 async def delete_book(book_id: int, service: BookService = Depends(get_book_service)):
     success = await service.delete_book(book_id)
     if not success:

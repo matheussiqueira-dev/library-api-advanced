@@ -1,17 +1,31 @@
+import logging
 import time
-import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Request, status
+from fastapi.openapi.docs import get_redoc_html
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from pydantic import ValidationError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.api.v1.router import api_router
 from app.core.config import settings
-from app.core.database import Base, engine
+from app.core.database import AsyncSessionLocal, Base, engine
 from app.core.logging import setup_logging
+from app.core.security import (
+    LUCIDE_SCRIPT_INTEGRITY,
+    LUCIDE_SCRIPT_URL,
+    REDOC_SCRIPT_URL,
+    BodySizeLimitMiddleware,
+    resolve_request_id,
+    security_headers_for,
+)
+from app.services.demo_seed import seed_demo_books
+
+logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -19,6 +33,15 @@ async def lifespan(app: FastAPI):
     if settings.DB_AUTO_CREATE:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+    if settings.DEMO_SEED:
+        try:
+            async with AsyncSessionLocal() as session:
+                added = await seed_demo_books(session)
+            logger.info("Demo seed added %d books", added)
+        except (SQLAlchemyError, ValidationError):
+            # Demo data is optional: keep serving /health, /docs and the UI without it.
+            # Invalid DEMO_BOOKS entries still fail CI (tests call seed_demo_books directly).
+            logger.exception("Demo seed failed; starting with the current catalog")
     yield
     # Shutdown
     await engine.dispose()
@@ -28,29 +51,60 @@ app = FastAPI(
     description=settings.PROJECT_DESCRIPTION,
     version=settings.VERSION,
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    # Served below with a pinned bundle: FastAPI's default loads the moving redoc@next tag.
+    redoc_url=None,
     lifespan=lifespan
 )
+REDOC_PATH = "/redoc"
 
 BASE_DIR = Path(__file__).resolve().parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "web" / "templates"))
+DOCS_PATHS = frozenset(
+    path for path in (app.docs_url, REDOC_PATH, app.swagger_ui_oauth2_redirect_url) if path
+)
 
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "web" / "static")), name="static")
 app.include_router(api_router, prefix=settings.API_V1_STR)
+app.add_middleware(BodySizeLimitMiddleware, max_bytes=settings.MAX_REQUEST_BODY_BYTES)
 
 @app.middleware("http")
 async def request_context_middleware(request: Request, call_next):
-    request_id = request.headers.get("X-Request-Id", str(uuid.uuid4()))
+    request_id = resolve_request_id(request.headers.get("X-Request-Id"))
     start_time = time.perf_counter()
     response = await call_next(request)
     response.headers["X-Request-Id"] = request_id
     response.headers["X-Process-Time"] = f"{time.perf_counter() - start_time:.4f}"
+    response.headers.update(security_headers_for(request.url.path, DOCS_PATHS))
     return response
+
+@app.exception_handler(IntegrityError)
+async def integrity_error_handler(request: Request, exc: IntegrityError) -> JSONResponse:
+    # Unique-constraint races (e.g. two concurrent creates with the same ISBN).
+    return JSONResponse(
+        status_code=status.HTTP_409_CONFLICT,
+        content={"detail": "The request conflicts with existing data."},
+    )
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def ui(request: Request):
     return templates.TemplateResponse(
+        request,
         "index.html",
-        {"request": request, "api_base": settings.API_V1_STR, "project_name": settings.PROJECT_NAME},
+        {
+            "api_base": settings.API_V1_STR,
+            "project_name": settings.PROJECT_NAME,
+            "lucide_src": LUCIDE_SCRIPT_URL,
+            "lucide_integrity": LUCIDE_SCRIPT_INTEGRITY,
+            "ephemeral_data": settings.ephemeral_database,
+        },
+    )
+
+@app.get(REDOC_PATH, include_in_schema=False)
+async def redoc() -> HTMLResponse:
+    return get_redoc_html(
+        openapi_url=app.openapi_url or "",
+        title=f"{app.title} - ReDoc",
+        redoc_js_url=REDOC_SCRIPT_URL,
     )
 
 @app.get("/api", include_in_schema=False)

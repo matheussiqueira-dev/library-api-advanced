@@ -1,69 +1,98 @@
-import re
+import logging
 import httpx
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import HTTPException, status
+from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.cache import TTLCache
+from app.core.config import settings
+from app.core.isbn import normalize_isbn
 from app.models.book import Book
 from app.repositories.book_repository import BookRepository
 from app.schemas.book import BookCreate, BookUpdate
 
-class BookService:
-    def __init__(self, db: AsyncSession):
-        self.repo = BookRepository(db)
-        self._isbn_pattern = re.compile(r"[\s-]")
+logger = logging.getLogger(__name__)
 
-    def _normalize_isbn(self, isbn: Optional[str]) -> Optional[str]:
-        if not isbn:
-            return None
-        cleaned = self._isbn_pattern.sub("", isbn).upper()
-        return cleaned or None
+OPENLIBRARY_BOOKS_URL = "https://openlibrary.org/api/books"
+LOOKUP_TIMEOUT_SECONDS = 5.0
+# Successful lookups (including "not found") are cached per instance for a day.
+lookup_cache: TTLCache[Dict[str, Any]] = TTLCache(ttl_seconds=86_400, max_entries=512)
+
+class BookService:
+    def __init__(self, db: AsyncSession, http_transport: Optional[httpx.AsyncBaseTransport] = None):
+        self.repo = BookRepository(db)
+        self._http_transport = http_transport
 
     async def fetch_book_by_isbn(self, isbn: str) -> dict:
         """Fetch book metadata from OpenLibrary API."""
-        normalized_isbn = self._normalize_isbn(isbn)
+        normalized_isbn = normalize_isbn(isbn)
         if not normalized_isbn:
             return {}
-        
-        async with httpx.AsyncClient() as client:
-            try:
+
+        cached = lookup_cache.get(normalized_isbn)
+        if cached is not None:
+            return cached
+
+        key = f"ISBN:{normalized_isbn}"
+        try:
+            async with httpx.AsyncClient(
+                timeout=LOOKUP_TIMEOUT_SECONDS, transport=self._http_transport
+            ) as client:
                 response = await client.get(
-                    f"https://openlibrary.org/api/books?bibkeys=ISBN:{normalized_isbn}&format=json&jscmd=data",
-                    timeout=5.0
+                    OPENLIBRARY_BOOKS_URL,
+                    params={"bibkeys": key, "format": "json", "jscmd": "data"},
                 )
-                if response.status_code == 200:
-                    data = response.json()
-                    key = f"ISBN:{normalized_isbn}"
-                    if key in data:
-                        book_data = data[key]
-                        return {
-                            "title": book_data.get("title"),
-                            "author": book_data.get("authors", [{}])[0].get("name") if book_data.get("authors") else None,
-                            "year": int(book_data.get("publish_date", "").split()[-1]) if book_data.get("publish_date") and book_data.get("publish_date").split()[-1].isdigit() else None,
-                            "description": book_data.get("notes") or book_data.get("subtitle"),
-                            "cover_url": book_data.get("cover", {}).get("large"),
-                            "page_count": book_data.get("number_of_pages"),
-                        }
-            except Exception:
-                pass
-        return {}
+            if response.status_code != 200:
+                logger.warning("OpenLibrary lookup returned HTTP %s", response.status_code)
+                return {}
+            data = response.json()
+            result = self._parse_openlibrary(data[key]) if key in data else {}
+        except (httpx.HTTPError, ValueError, TypeError, AttributeError, IndexError):
+            logger.warning("OpenLibrary lookup failed for ISBN %s", normalized_isbn, exc_info=True)
+            return {}
+
+        lookup_cache.set(normalized_isbn, result)
+        return result
+
+    @staticmethod
+    def _parse_openlibrary(book_data: Dict[str, Any]) -> Dict[str, Any]:
+        publish_date = book_data.get("publish_date") or ""
+        last_token = publish_date.split()[-1] if publish_date.split() else ""
+        authors = book_data.get("authors") or []
+        return {
+            "title": book_data.get("title"),
+            "author": authors[0].get("name") if authors else None,
+            "year": int(last_token) if last_token.isdigit() else None,
+            "description": book_data.get("notes") or book_data.get("subtitle"),
+            "cover_url": (book_data.get("cover") or {}).get("large"),
+            "page_count": book_data.get("number_of_pages"),
+        }
 
     async def create_book(self, book_in: BookCreate) -> Book:
+        if await self.repo.count() >= settings.DEMO_MAX_BOOKS:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Catalog limit reached. Delete a book before adding another.",
+            )
+
         payload = book_in.model_dump()
-        payload["isbn"] = self._normalize_isbn(payload.get("isbn"))
-        
+
         if payload["isbn"]:
             existing = await self.repo.get_by_isbn(payload["isbn"])
             if existing:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="ISBN already exists")
-        
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="ISBN already exists")
+
         # If some fields are missing and ISBN is present, try to auto-fill
         if payload["isbn"] and (not payload.get("description") or not payload.get("cover_url")):
             metadata = await self.fetch_book_by_isbn(payload["isbn"])
-            for key, value in metadata.items():
-                if not payload.get(key) and value:
-                    payload[key] = value
+            merged = {**payload, **{k: v for k, v in metadata.items() if v and not payload.get(k)}}
+            try:
+                # External data goes through the same validation as user input.
+                payload = BookCreate.model_validate(merged).model_dump()
+            except ValidationError:
+                logger.warning("Ignoring OpenLibrary metadata that failed validation")
 
         return await self.repo.create(obj_in=payload)
 
@@ -99,15 +128,13 @@ class BookService:
         book = await self.repo.get(book_id)
         if not book:
             return None
-        
+
         update_data = book_in.model_dump(exclude_unset=True)
-        if "isbn" in update_data:
-            update_data["isbn"] = self._normalize_isbn(update_data.get("isbn"))
-            if update_data["isbn"]:
-                existing = await self.repo.get_by_isbn(update_data["isbn"])
-                if existing and existing.id != book_id:
-                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="ISBN already exists")
-        
+        if update_data.get("isbn"):
+            existing = await self.repo.get_by_isbn(update_data["isbn"])
+            if existing and existing.id != book_id:
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="ISBN already exists")
+
         return await self.repo.update(db_obj=book, obj_in=update_data)
 
     async def delete_book(self, book_id: int) -> bool:
