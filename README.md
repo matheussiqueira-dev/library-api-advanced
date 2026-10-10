@@ -93,6 +93,7 @@ Veja `.env.example` para os valores padrão.
 | `PROJECT_NAME`, `PROJECT_DESCRIPTION`, `VERSION`, `API_V1_STR` | Metadados e prefixo da API |
 | `DATABASE_URL` | URL assíncrona do SQLAlchemy |
 | `DB_AUTO_CREATE` | Cria as tabelas na inicialização |
+| `DEMO_SEED` | Insere um acervo inicial de livros quando o banco está vazio |
 | `LOG_LEVEL` | Nível de log |
 | `WRITES_ENABLED` | Kill switch das rotas de escrita |
 | `DEMO_MAX_BOOKS` | Número máximo de livros |
@@ -101,6 +102,21 @@ Veja `.env.example` para os valores padrão.
 | `RATE_LIMIT_WRITES_PER_WINDOW` | Escritas por IP por janela |
 | `RATE_LIMIT_LOOKUPS_PER_WINDOW` | Consultas de ISBN por IP por janela |
 | `TRUST_PROXY_HEADERS` | Usa `X-Forwarded-For` como IP do cliente (só atrás de proxy confiável) |
+| `VERCEL` | Definida pela própria Vercel; ativa os padrões do deploy (ver abaixo) |
+
+## ▲ Deploy na Vercel
+
+Projeto único com o preset **FastAPI** (entrypoint `app/main.py`, Python 3.12 via `.python-version`). O `vercel.json` só tira testes e ferramentas do bundle da Function.
+
+**Persistência atual: ponte temporária.** O filesystem da Vercel é somente leitura, exceto `/tmp`. Quando `VERCEL=1` e nenhuma `DATABASE_URL` foi definida, o app:
+
+- usa SQLite em `/tmp/library.db`, recriado a cada cold start;
+- insere um acervo inicial de livros reais (`DEMO_SEED`);
+- usa o IP de `X-Forwarded-For`, que a Vercel sobrescreve, para o rate limit (`TRUST_PROXY_HEADERS`).
+
+Limitações: os dados voltam ao acervo inicial periodicamente e podem divergir entre instâncias. A interface mostra esse aviso. Para dados duráveis, defina `DATABASE_URL` com um Postgres gerenciado (por exemplo, Neon pelo Marketplace da Vercel); variáveis explícitas sempre têm precedência.
+
+Recomendado: uma regra de rate limit no Vercel Firewall cobrindo `POST/PUT/DELETE /api/v1/books` e `/api/v1/books/lookup`, já que o limite do app é por instância.
 
 ## 🛡️ Boas Práticas Aplicadas
 
