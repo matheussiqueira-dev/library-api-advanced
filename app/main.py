@@ -8,7 +8,7 @@ from fastapi.openapi.docs import get_redoc_html
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.api.v1.router import api_router
 from app.core.config import settings
@@ -33,9 +33,13 @@ async def lifespan(app: FastAPI):
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
     if settings.DEMO_SEED:
-        async with AsyncSessionLocal() as session:
-            added = await seed_demo_books(session)
-        logger.info("Demo seed added %d books", added)
+        try:
+            async with AsyncSessionLocal() as session:
+                added = await seed_demo_books(session)
+            logger.info("Demo seed added %d books", added)
+        except SQLAlchemyError:
+            # Demo data is optional: keep serving /health, /docs and the UI without it.
+            logger.exception("Demo seed failed; starting with the current catalog")
     yield
     # Shutdown
     await engine.dispose()

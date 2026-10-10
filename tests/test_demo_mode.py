@@ -1,8 +1,12 @@
+import logging
+
 import pytest
+from sqlalchemy.exc import OperationalError
 
 from app.core.config import EPHEMERAL_DATABASE_URL, Settings, settings
 from app.core.database import AsyncSessionLocal
 from app.core.rate_limit import write_limiter
+from app.main import app, lifespan
 from app.services.demo_seed import DEMO_BOOKS, seed_demo_books
 
 BOOKS = "/api/v1/books/"
@@ -81,3 +85,17 @@ async def test_forwarded_ip_gets_its_own_budget_behind_a_trusted_proxy(client, m
     assert (await client.post(BOOKS, json=make_book(), headers=alice)).status_code == 201
     assert (await client.post(BOOKS, json=make_book(), headers=alice)).status_code == 429
     assert (await client.post(BOOKS, json=make_book(), headers=bob)).status_code == 201
+
+
+@pytest.mark.asyncio
+async def test_startup_survives_a_failed_seed(client, monkeypatch, caplog):
+    async def broken_seed(session):
+        raise OperationalError("INSERT INTO books", {}, Exception("disk I/O error"))
+
+    monkeypatch.setattr(settings, "DEMO_SEED", True)
+    monkeypatch.setattr("app.main.seed_demo_books", broken_seed)
+    with caplog.at_level(logging.ERROR, logger="app.main"):
+        async with lifespan(app):
+            pass
+    assert "Demo seed failed" in caplog.text
+    assert (await client.get("/health")).status_code == 200
