@@ -1,5 +1,6 @@
 from typing import List, Optional, Tuple
 
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.book import Book, BookStatus
@@ -50,21 +51,28 @@ DEMO_BOOKS: List[Tuple[str, str, int, Optional[str], str, BookStatus]] = [
 
 
 async def seed_demo_books(db: AsyncSession) -> int:
-    """Insert DEMO_BOOKS when the catalog is empty. Returns how many were added."""
-    if await BookRepository(db).count() > 0:
-        return 0
-    for title, author, year, isbn, language, status in DEMO_BOOKS:
-        book = BookCreate.model_validate(
-            {
-                "title": title,
-                "author": author,
-                "year": year,
-                "isbn": isbn,
-                "language": language,
-                "status": status,
-                "cover_url": _COVER_URL.format(isbn=isbn) if isbn else None,
-            }
-        )
-        db.add(Book(**book.model_dump()))
-    await db.commit()
+    """Insert DEMO_BOOKS when the catalog is empty. Returns how many were added.
+
+    Database errors roll the session back and propagate to the caller.
+    """
+    try:
+        if await BookRepository(db).count() > 0:
+            return 0
+        for title, author, year, isbn, language, status in DEMO_BOOKS:
+            book = BookCreate.model_validate(
+                {
+                    "title": title,
+                    "author": author,
+                    "year": year,
+                    "isbn": isbn,
+                    "language": language,
+                    "status": status,
+                    "cover_url": _COVER_URL.format(isbn=isbn) if isbn else None,
+                }
+            )
+            db.add(Book(**book.model_dump()))
+        await db.commit()
+    except SQLAlchemyError:
+        await db.rollback()
+        raise
     return len(DEMO_BOOKS)

@@ -63,6 +63,20 @@ async def test_seed_fills_an_empty_catalog_once(client):
 
 
 @pytest.mark.asyncio
+async def test_seed_rolls_back_and_reraises_database_errors(client, monkeypatch):
+    async def failing_commit(self):
+        raise OperationalError("COMMIT", {}, Exception("disk full"))
+
+    async with AsyncSessionLocal() as session:
+        monkeypatch.setattr(type(session), "commit", failing_commit)
+        with pytest.raises(OperationalError):
+            await seed_demo_books(session)
+        monkeypatch.undo()
+        # Rollback discarded the pending books instead of leaving them in the session.
+        assert not session.new
+
+
+@pytest.mark.asyncio
 async def test_seed_skips_a_catalog_that_has_books(client, make_book):
     await client.post(BOOKS, json=make_book())
     async with AsyncSessionLocal() as session:
