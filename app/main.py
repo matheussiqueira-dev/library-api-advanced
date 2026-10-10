@@ -1,3 +1,4 @@
+import logging
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -11,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.api.v1.router import api_router
 from app.core.config import settings
-from app.core.database import Base, engine
+from app.core.database import AsyncSessionLocal, Base, engine
 from app.core.logging import setup_logging
 from app.core.security import (
     LUCIDE_SCRIPT_INTEGRITY,
@@ -21,6 +22,9 @@ from app.core.security import (
     resolve_request_id,
     security_headers_for,
 )
+from app.services.demo_seed import seed_demo_books
+
+logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -28,6 +32,10 @@ async def lifespan(app: FastAPI):
     if settings.DB_AUTO_CREATE:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+    if settings.DEMO_SEED:
+        async with AsyncSessionLocal() as session:
+            added = await seed_demo_books(session)
+        logger.info("Demo seed added %d books", added)
     yield
     # Shutdown
     await engine.dispose()
@@ -74,13 +82,14 @@ async def integrity_error_handler(request: Request, exc: IntegrityError) -> JSON
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def ui(request: Request):
     return templates.TemplateResponse(
+        request,
         "index.html",
         {
-            "request": request,
             "api_base": settings.API_V1_STR,
             "project_name": settings.PROJECT_NAME,
             "lucide_src": LUCIDE_SCRIPT_URL,
             "lucide_integrity": LUCIDE_SCRIPT_INTEGRITY,
+            "ephemeral_data": settings.ephemeral_database,
         },
     )
 

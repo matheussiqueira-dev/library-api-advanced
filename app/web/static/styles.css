@@ -593,6 +593,18 @@ textarea { resize: vertical; min-height: 80px; }
 
 .loader-spinner-sm { width: 14px; height: 14px; border-width: 1px; }
 
+.demo-notice {
+  margin: -16px 0 24px;
+  padding: 12px 16px;
+  border: 1px solid var(--border-hover);
+  border-left: 4px solid var(--warning);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.demo-notice strong { color: var(--text-primary); }
+
 button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
 @keyframes spin { to { transform: rotate(360deg); } }

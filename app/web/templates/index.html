@@ -45,6 +45,12 @@
             <p class="hero-desc">
               Explore sua biblioteca com velocidade extrema, filtros avançados e curadoria automática via ISBN.
             </p>
+            {% if ephemeral_data %}
+            <p class="demo-notice" role="note">
+              <strong>Demonstração:</strong> os dados ficam num banco temporário, voltam ao acervo inicial
+              periodicamente e podem variar entre acessos.
+            </p>
+            {% endif %}
             <div class="hero-actions">
               <button id="seed-btn" class="btn-primary">
                 <i data-lucide="plus-circle"></i>
