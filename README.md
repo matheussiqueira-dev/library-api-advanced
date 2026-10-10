@@ -2,6 +2,10 @@
 
 Uma implementação de referência de nível Sênior para gestão de acervos bibliográficos, demonstrando arquitetura moderna, padrões de design robustos e uma experiência de usuário (UX) excepcional.
 
+[![Demo ao vivo](https://img.shields.io/badge/Demo-ao_vivo-00f2fe?style=for-the-badge&logo=vercel&logoColor=000000)](https://library-api-advanced.vercel.app)
+[![Case no portfólio](https://img.shields.io/badge/Case-Portf%C3%B3lio-000000?style=for-the-badge&logo=googlechrome&logoColor=white)](https://www.matheussiqueira.dev/pt-BR/projects/library-api-advanced)
+[![Código](https://img.shields.io/badge/C%C3%B3digo-GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/matheussiqueira-dev/library-api-advanced)
+
 Este projeto transcende um CRUD básico, oferecendo integração com APIs externas, arquitetura em camadas (Repository/Service/API) e uma interface reativa de alto desempenho.
 
 ## 🚀 Tecnologias Core
@@ -128,5 +132,13 @@ Recomendado: uma regra de rate limit no Vercel Firewall cobrindo `POST/PUT/DELET
 
 ---
 
-**Autoria: Matheus Siqueira**  
-**Website:** [https://www.matheussiqueira.dev/](https://www.matheussiqueira.dev/)
+### Desenvolvido por Matheus Siqueira
+
+**Analista de Dados & BI | Power BI • SQL • Python • DAX | ETL, Modelagem de Dados, KPIs e Automação**
+
+Conecte-se e acesse meus projetos:
+
+[![Portfólio](https://img.shields.io/badge/Portf%C3%B3lio-matheussiqueira.dev-000000?style=for-the-badge&logo=googlechrome&logoColor=white)](https://www.matheussiqueira.dev)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Matheus_Siqueira-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/matheussiqueira-dev)
+[![GitHub](https://img.shields.io/badge/GitHub-matheussiqueira--dev-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/matheussiqueira-dev)
+[![E-mail](https://img.shields.io/badge/E--mail-hellomatheusdev%40gmail.com-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:hellomatheusdev@gmail.com)
