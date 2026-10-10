@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{{ project_name }} | Advanced Library Management</title>
     <link rel="stylesheet" href="/static/styles.css" />
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="{{ lucide_src }}" integrity="{{ lucide_integrity }}" crossorigin="anonymous"></script>
   </head>
-  <body class="dark-theme">
+  <body class="dark-theme" data-api-base="{{ api_base }}">
     <div class="glow-container">
       <div class="glow-orb glow-1"></div>
       <div class="glow-orb glow-2"></div>
@@ -174,7 +174,7 @@
             <div id="inspector-content" class="book-details hidden">
               <div class="details-top">
                 <div id="detail-cover-container" class="detail-cover">
-                  <img id="detail-cover-img" src="" alt="Capa do Livro" class="hidden" />
+                  <img id="detail-cover-img" alt="" class="hidden" />
                   <div id="detail-cover-fallback" class="cover-fallback">
                     <i data-lucide="book-open"></i>
                   </div>
@@ -295,14 +295,8 @@
     </main>
 
     <!-- Toast Notifications -->
-    <div id="toast-container" class="toast-stack"></div>
+    <div id="toast-container" class="toast-stack" role="status" aria-live="polite"></div>
 
-    <script>
-      window.APP_CONFIG = {
-        apiBase: "{{ api_base }}",
-      };
-      lucide.createIcons();
-    </script>
     <script src="/static/app.js"></script>
   </body>
 </html>
