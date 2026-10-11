@@ -172,19 +172,6 @@ button, input, select, textarea {
 .hero-title { font-size: 48px; line-height: 1.1; margin-bottom: 20px; }
 .hero-desc { font-size: 18px; color: var(--text-secondary); max-width: 500px; margin-bottom: 32px; }
 
-.badge {
-  display: inline-block;
-  padding: 6px 14px;
-  background: rgba(99, 102, 241, 0.1);
-  color: var(--accent);
-  border: 1px solid rgba(99, 102, 241, 0.2);
-  border-radius: 99px;
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  margin-bottom: 16px;
-}
-
 .hero-actions { display: flex; gap: 16px; }
 
 .stats-sidebar {
