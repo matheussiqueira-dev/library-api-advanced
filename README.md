@@ -1,6 +1,6 @@
 # Library Studio
 
-Uma implementação de referência de nível Sênior para gestão de acervos bibliográficos, demonstrando arquitetura moderna, padrões de design robustos e uma experiência de usuário (UX) excepcional.
+Uma implementação de referência para gestão de acervos bibliográficos, demonstrando arquitetura moderna, padrões de design robustos e uma experiência de usuário (UX) excepcional.
 
 [![Demo ao vivo](https://img.shields.io/badge/Demo-ao_vivo-00f2fe?style=for-the-badge&logo=vercel&logoColor=000000)](https://library-api-advanced.vercel.app)
 [![Case no portfólio](https://img.shields.io/badge/Case-Portf%C3%B3lio-000000?style=for-the-badge&logo=googlechrome&logoColor=white)](https://www.matheussiqueira.dev/pt-BR/projects/library-api-advanced)
