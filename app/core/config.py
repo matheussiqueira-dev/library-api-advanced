@@ -8,7 +8,7 @@ EPHEMERAL_DATABASE_URL = "sqlite+aiosqlite:////tmp/library.db"
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Library Studio"
-    PROJECT_DESCRIPTION: str = "A senior-grade, async-first Library API with a modern UX."
+    PROJECT_DESCRIPTION: str = "An async-first Library API with a modern UX."
     VERSION: str = "1.1.0"
     API_V1_STR: str = "/api/v1"
 

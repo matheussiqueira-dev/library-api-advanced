@@ -1,6 +1,6 @@
 /**
  * Library Studio - Premium Frontend Logic
- * Senior Implementation: Async/Await, Clean Architecture, Reactive State
+ * Async/Await, Clean Architecture, Reactive State
  */
 
 const apiBase = document.body.dataset.apiBase || "/api/v1";
