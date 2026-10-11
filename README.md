@@ -1,4 +1,4 @@
-# Library Studio Advanced API
+# Library Studio
 
 Uma implementação de referência de nível Sênior para gestão de acervos bibliográficos, demonstrando arquitetura moderna, padrões de design robustos e uma experiência de usuário (UX) excepcional.
 
