@@ -1,12 +1,11 @@
 import re
-from typing import Optional
 
 _SEPARATORS = re.compile(r"[\s-]")
 _ISBN10 = re.compile(r"^\d{9}[\dX]$")
 _ISBN13 = re.compile(r"^\d{13}$")
 
 
-def normalize_isbn(raw: Optional[str]) -> Optional[str]:
+def normalize_isbn(raw: str | None) -> str | None:
     """Strip spaces and hyphens and upper-case the check digit."""
     if not raw:
         return None

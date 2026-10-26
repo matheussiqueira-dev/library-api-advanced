@@ -1,6 +1,5 @@
 import re
 import uuid
-from typing import Dict, Optional
 
 from fastapi import HTTPException, status
 from starlette.responses import JSONResponse
@@ -44,7 +43,7 @@ DOCS_CSP = "; ".join(
     ]
 )
 
-BASE_SECURITY_HEADERS: Dict[str, str] = {
+BASE_SECURITY_HEADERS: dict[str, str] = {
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
@@ -55,12 +54,12 @@ _REQUEST_ID = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
 _BODY_METHODS = {"POST", "PUT", "PATCH"}
 
 
-def security_headers_for(path: str, docs_paths: frozenset) -> Dict[str, str]:
+def security_headers_for(path: str, docs_paths: frozenset) -> dict[str, str]:
     csp = DOCS_CSP if path in docs_paths else APP_CSP
     return {**BASE_SECURITY_HEADERS, "Content-Security-Policy": csp}
 
 
-def resolve_request_id(incoming: Optional[str]) -> str:
+def resolve_request_id(incoming: str | None) -> str:
     """Reuse a well-formed upstream request id, otherwise mint a new one."""
     if incoming and _REQUEST_ID.match(incoming):
         return incoming

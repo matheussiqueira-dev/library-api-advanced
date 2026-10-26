@@ -100,7 +100,9 @@ async def test_oversized_chunked_body_gets_413(client):
         for _ in range(settings.MAX_REQUEST_BODY_BYTES // 1024 + 2):
             yield b"x" * 1024
 
-    response = await client.post(BOOKS, content=chunks(), headers={"Content-Type": "application/json"})
+    response = await client.post(
+        BOOKS, content=chunks(), headers={"Content-Type": "application/json"}
+    )
     assert response.status_code == 413
 
 

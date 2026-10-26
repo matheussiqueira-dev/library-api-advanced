@@ -1,18 +1,15 @@
 import time
-from typing import Dict, Generic, Optional, Tuple, TypeVar
-
-V = TypeVar("V")
 
 
-class TTLCache(Generic[V]):
+class TTLCache[V]:
     """Small in-process cache with per-entry expiry and a hard size cap."""
 
     def __init__(self, ttl_seconds: float, max_entries: int) -> None:
         self.ttl_seconds = ttl_seconds
         self.max_entries = max_entries
-        self._entries: Dict[str, Tuple[float, V]] = {}
+        self._entries: dict[str, tuple[float, V]] = {}
 
-    def get(self, key: str) -> Optional[V]:
+    def get(self, key: str) -> V | None:
         entry = self._entries.get(key)
         if entry is None:
             return None

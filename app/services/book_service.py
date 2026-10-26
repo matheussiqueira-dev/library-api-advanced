@@ -1,7 +1,7 @@
 import logging
-import httpx
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
+import httpx
 from fastapi import HTTPException, status
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,10 +18,11 @@ logger = logging.getLogger(__name__)
 OPENLIBRARY_BOOKS_URL = "https://openlibrary.org/api/books"
 LOOKUP_TIMEOUT_SECONDS = 5.0
 # Successful lookups (including "not found") are cached per instance for a day.
-lookup_cache: TTLCache[Dict[str, Any]] = TTLCache(ttl_seconds=86_400, max_entries=512)
+lookup_cache: TTLCache[dict[str, Any]] = TTLCache(ttl_seconds=86_400, max_entries=512)
+
 
 class BookService:
-    def __init__(self, db: AsyncSession, http_transport: Optional[httpx.AsyncBaseTransport] = None):
+    def __init__(self, db: AsyncSession, http_transport: httpx.AsyncBaseTransport | None = None):
         self.repo = BookRepository(db)
         self._http_transport = http_transport
 
@@ -57,7 +58,7 @@ class BookService:
         return result
 
     @staticmethod
-    def _parse_openlibrary(book_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _parse_openlibrary(book_data: dict[str, Any]) -> dict[str, Any]:
         publish_date = book_data.get("publish_date") or ""
         last_token = publish_date.split()[-1] if publish_date.split() else ""
         authors = book_data.get("authors") or []
@@ -82,7 +83,9 @@ class BookService:
         if payload["isbn"]:
             existing = await self.repo.get_by_isbn(payload["isbn"])
             if existing:
-                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="ISBN already exists")
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT, detail="ISBN already exists"
+                )
 
         # If some fields are missing and ISBN is present, try to auto-fill
         if payload["isbn"] and (not payload.get("description") or not payload.get("cover_url")):
@@ -96,7 +99,7 @@ class BookService:
 
         return await self.repo.create(obj_in=payload)
 
-    async def get_book(self, book_id: int) -> Optional[Book]:
+    async def get_book(self, book_id: int) -> Book | None:
         return await self.repo.get(book_id)
 
     async def get_books(
@@ -104,14 +107,14 @@ class BookService:
         *,
         skip: int = 0,
         limit: int = 100,
-        q: Optional[str] = None,
-        author: Optional[str] = None,
-        year: Optional[int] = None,
-        year_min: Optional[int] = None,
-        year_max: Optional[int] = None,
+        q: str | None = None,
+        author: str | None = None,
+        year: int | None = None,
+        year_min: int | None = None,
+        year_max: int | None = None,
         sort: str = "created_at",
         order: str = "desc",
-    ) -> Tuple[List[Book], int]:
+    ) -> tuple[list[Book], int]:
         return await self.repo.search_books(
             skip=skip,
             limit=limit,
@@ -124,7 +127,7 @@ class BookService:
             order=order,
         )
 
-    async def update_book(self, book_id: int, book_in: BookUpdate) -> Optional[Book]:
+    async def update_book(self, book_id: int, book_in: BookUpdate) -> Book | None:
         book = await self.repo.get(book_id)
         if not book:
             return None
@@ -133,7 +136,9 @@ class BookService:
         if update_data.get("isbn"):
             existing = await self.repo.get_by_isbn(update_data["isbn"])
             if existing and existing.id != book_id:
-                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="ISBN already exists")
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT, detail="ISBN already exists"
+                )
 
         return await self.repo.update(db_obj=book, obj_in=update_data)
 

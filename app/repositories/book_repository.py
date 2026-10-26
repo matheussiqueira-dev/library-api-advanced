@@ -1,13 +1,14 @@
-from typing import List, Optional, Tuple, Any
-from sqlalchemy import select, or_, func
+from sqlalchemy import func, or_, select
+
 from app.models.book import Book
 from app.repositories.base import BaseRepository
+
 
 class BookRepository(BaseRepository[Book]):
     def __init__(self, db):
         super().__init__(Book, db)
 
-    async def get_by_isbn(self, isbn: str) -> Optional[Book]:
+    async def get_by_isbn(self, isbn: str) -> Book | None:
         query = select(Book).where(Book.isbn == isbn)
         result = await self.db.execute(query)
         return result.scalars().first()
@@ -17,14 +18,14 @@ class BookRepository(BaseRepository[Book]):
         *,
         skip: int = 0,
         limit: int = 100,
-        q: Optional[str] = None,
-        author: Optional[str] = None,
-        year: Optional[int] = None,
-        year_min: Optional[int] = None,
-        year_max: Optional[int] = None,
+        q: str | None = None,
+        author: str | None = None,
+        year: int | None = None,
+        year_min: int | None = None,
+        year_max: int | None = None,
         sort: str = "created_at",
         order: str = "desc",
-    ) -> Tuple[List[Book], int]:
+    ) -> tuple[list[Book], int]:
         conditions = []
         if q:
             search = f"%{q.strip()}%"
@@ -59,6 +60,6 @@ class BookRepository(BaseRepository[Book]):
         if conditions:
             stmt = stmt.where(*conditions)
         stmt = stmt.order_by(order_by).offset(skip).limit(limit)
-        
+
         result = await self.db.execute(stmt)
         return result.scalars().all(), int(total or 0)

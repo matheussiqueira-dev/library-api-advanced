@@ -1,10 +1,13 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, Enum as SQLEnum
 import enum
+
+from sqlalchemy import Column, DateTime, Integer, String, Text
+from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.sql import func
+
 from app.core.database import Base
 
 
-class BookStatus(str, enum.Enum):
+class BookStatus(enum.StrEnum):
     AVAILABLE = "available"
     BORROWED = "borrowed"
     RESERVED = "reserved"
@@ -24,6 +27,6 @@ class Book(Base):
     language = Column(String(50), nullable=True)
     page_count = Column(Integer, nullable=True)
     status = Column(SQLEnum(BookStatus), default=BookStatus.AVAILABLE, nullable=False)
-    
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

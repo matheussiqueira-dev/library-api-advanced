@@ -1,5 +1,3 @@
-from typing import List, Optional, Tuple
-
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,9 +16,16 @@ AVAILABLE, BORROWED, RESERVED, MAINTENANCE = (
 
 # Real books with their published ISBNs, shown in the UI under a "demo data" notice.
 # (title, author, year, isbn, language, status)
-DEMO_BOOKS: List[Tuple[str, str, int, Optional[str], str, BookStatus]] = [
+DEMO_BOOKS: list[tuple[str, str, int, str | None, str, BookStatus]] = [
     ("Clean Code", "Robert C. Martin", 2008, "9780132350884", "en", AVAILABLE),
-    ("The Pragmatic Programmer", "Andrew Hunt e David Thomas", 1999, "9780201616224", "en", BORROWED),
+    (
+        "The Pragmatic Programmer",
+        "Andrew Hunt e David Thomas",
+        1999,
+        "9780201616224",
+        "en",
+        BORROWED,
+    ),
     ("Refactoring", "Martin Fowler", 1999, "0201485672", "en", AVAILABLE),
     (
         "Design Patterns",
@@ -33,7 +38,14 @@ DEMO_BOOKS: List[Tuple[str, str, int, Optional[str], str, BookStatus]] = [
     ("Domain-Driven Design", "Eric Evans", 2003, "0321125215", "en", AVAILABLE),
     ("The Mythical Man-Month", "Frederick P. Brooks Jr.", 1995, "0201835959", "en", AVAILABLE),
     ("Code Complete", "Steve McConnell", 2004, "0735619670", "en", MAINTENANCE),
-    ("Designing Data-Intensive Applications", "Martin Kleppmann", 2017, "9781449373320", "en", AVAILABLE),
+    (
+        "Designing Data-Intensive Applications",
+        "Martin Kleppmann",
+        2017,
+        "9781449373320",
+        "en",
+        AVAILABLE,
+    ),
     ("Clean Architecture", "Robert C. Martin", 2017, "9780134494166", "en", BORROWED),
     (
         "Introduction to Algorithms",

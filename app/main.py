@@ -27,6 +27,7 @@ from app.services.demo_seed import seed_demo_books
 
 logger = logging.getLogger(__name__)
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
@@ -46,6 +47,7 @@ async def lifespan(app: FastAPI):
     # Shutdown
     await engine.dispose()
 
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     description=settings.PROJECT_DESCRIPTION,
@@ -58,7 +60,7 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     # Served below with a pinned bundle: FastAPI's default loads the moving redoc@next tag.
     redoc_url=None,
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 REDOC_PATH = "/redoc"
 
@@ -72,6 +74,7 @@ app.mount("/static", StaticFiles(directory=str(BASE_DIR / "web" / "static")), na
 app.include_router(api_router, prefix=settings.API_V1_STR)
 app.add_middleware(BodySizeLimitMiddleware, max_bytes=settings.MAX_REQUEST_BODY_BYTES)
 
+
 @app.middleware("http")
 async def request_context_middleware(request: Request, call_next):
     request_id = resolve_request_id(request.headers.get("X-Request-Id"))
@@ -82,6 +85,7 @@ async def request_context_middleware(request: Request, call_next):
     response.headers.update(security_headers_for(request.url.path, DOCS_PATHS))
     return response
 
+
 @app.exception_handler(IntegrityError)
 async def integrity_error_handler(request: Request, exc: IntegrityError) -> JSONResponse:
     # Unique-constraint races (e.g. two concurrent creates with the same ISBN).
@@ -89,6 +93,7 @@ async def integrity_error_handler(request: Request, exc: IntegrityError) -> JSON
         status_code=status.HTTP_409_CONFLICT,
         content={"detail": "The request conflicts with existing data."},
     )
+
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def ui(request: Request):
@@ -105,6 +110,7 @@ async def ui(request: Request):
         },
     )
 
+
 @app.get(REDOC_PATH, include_in_schema=False)
 async def redoc() -> HTMLResponse:
     return get_redoc_html(
@@ -113,9 +119,11 @@ async def redoc() -> HTMLResponse:
         redoc_js_url=REDOC_SCRIPT_URL,
     )
 
+
 @app.get("/api", include_in_schema=False)
 async def api_root():
     return {"message": "Welcome to the Advanced Library API", "docs": "/docs"}
+
 
 @app.get("/health", tags=["health"])
 async def health():

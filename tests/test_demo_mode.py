@@ -59,7 +59,9 @@ async def test_seed_fills_an_empty_catalog_once(client):
     books = response.json()
     assert len(books) == len(DEMO_BOOKS)
     with_isbn = [b for b in books if b["isbn"]]
-    assert with_isbn and all(b["cover_url"].startswith("https://covers.openlibrary.org/") for b in with_isbn)
+    assert with_isbn and all(
+        b["cover_url"].startswith("https://covers.openlibrary.org/") for b in with_isbn
+    )
 
 
 @pytest.mark.asyncio
@@ -93,7 +95,9 @@ async def test_ui_labels_ephemeral_demo_data(client, monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_forwarded_ip_gets_its_own_budget_behind_a_trusted_proxy(client, make_book, monkeypatch):
+async def test_forwarded_ip_gets_its_own_budget_behind_a_trusted_proxy(
+    client, make_book, monkeypatch
+):
     monkeypatch.setattr(settings, "TRUST_PROXY_HEADERS", True)
     monkeypatch.setattr(write_limiter, "max_requests", 1)
     alice = {"X-Forwarded-For": "203.0.113.10"}

@@ -11,7 +11,7 @@ atexit.register(shutil.rmtree, _TEST_DB_DIR, ignore_errors=True)
 os.environ["DATABASE_URL"] = f"sqlite+aiosqlite:///{(_TEST_DB_DIR / 'test.db').as_posix()}"
 os.environ["DB_AUTO_CREATE"] = "false"
 
-from typing import AsyncIterator, Callable, List  # noqa: E402
+from collections.abc import AsyncIterator, Callable  # noqa: E402
 
 import httpx  # noqa: E402
 import pytest  # noqa: E402
@@ -32,7 +32,7 @@ class FakeOpenLibrary:
     """Stands in for openlibrary.org so tests never reach the network."""
 
     def __init__(self) -> None:
-        self.requests: List[httpx.Request] = []
+        self.requests: list[httpx.Request] = []
 
     def handler(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)

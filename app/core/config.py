@@ -54,4 +54,5 @@ class Settings(BaseSettings):
     def ephemeral_database(self) -> bool:
         return self.DATABASE_URL == EPHEMERAL_DATABASE_URL
 
+
 settings = Settings()

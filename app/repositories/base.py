@@ -1,21 +1,22 @@
-from typing import Generic, Type, TypeVar, Optional, List, Any
+from typing import Any
+
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, delete, func
+
 from app.core.database import Base
 
-ModelType = TypeVar("ModelType", bound=Base)
 
-class BaseRepository(Generic[ModelType]):
-    def __init__(self, model: Type[ModelType], db: AsyncSession):
+class BaseRepository[ModelType: Base]:
+    def __init__(self, model: type[ModelType], db: AsyncSession):
         self.model = model
         self.db = db
 
-    async def get(self, id: Any) -> Optional[ModelType]:
+    async def get(self, id: Any) -> ModelType | None:
         query = select(self.model).where(self.model.id == id)
         result = await self.db.execute(query)
         return result.scalars().first()
 
-    async def get_multi(self, *, skip: int = 0, limit: int = 100) -> List[ModelType]:
+    async def get_multi(self, *, skip: int = 0, limit: int = 100) -> list[ModelType]:
         query = select(self.model).offset(skip).limit(limit)
         result = await self.db.execute(query)
         return result.scalars().all()

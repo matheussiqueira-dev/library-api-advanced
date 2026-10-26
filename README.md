@@ -75,6 +75,13 @@ Os testes usam um SQLite temporário e uma OpenLibrary simulada: não tocam o `l
 pytest
 ```
 
+### 5. Lint e formatação
+Configuração em `ruff.toml` (a mesma que o CI usa).
+```bash
+ruff check .
+ruff format --check .
+```
+
 ### 5. Acessos
 - **Frontend**: `http://localhost:8000/`
 - **Docs (Swagger)**: `http://localhost:8000/docs`

@@ -128,7 +128,9 @@ async def test_create_rejects_invalid_isbn(client, make_book, isbn):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("url", ["javascript:alert(1)", "data:text/html,hi", "//evil.example/x.png"])
+@pytest.mark.parametrize(
+    "url", ["javascript:alert(1)", "data:text/html,hi", "//evil.example/x.png"]
+)
 async def test_create_rejects_non_http_cover_url(client, make_book, url):
     response = await client.post(BOOKS, json=make_book(cover_url=url))
     assert response.status_code == 422

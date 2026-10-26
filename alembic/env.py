@@ -9,8 +9,7 @@ from alembic import context
 
 # Import your Base and Settings
 from app.core.config import settings
-from app.core.database import Base
-from app.models.book import Book  # Ensure models are imported so metadata is populated
+from app.models.book import Book
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -22,10 +21,12 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # target_metadata is your metadata object
-target_metadata = Base.metadata
+# Book.metadata is the shared declarative Base.metadata; importing a model registers its table.
+target_metadata = Book.metadata
 
 # Overwrite sqlalchemy.url with the one from settings
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.

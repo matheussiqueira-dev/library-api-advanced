@@ -1,7 +1,7 @@
 import math
 import time
 from collections import deque
-from typing import Awaitable, Callable, Deque, Dict, Optional
+from collections.abc import Awaitable, Callable
 
 from fastapi import HTTPException, Request, status
 
@@ -20,9 +20,9 @@ class SlidingWindowRateLimiter:
         self.max_requests = max_requests
         self.window_seconds = window_seconds
         self.max_keys = max_keys
-        self._hits: Dict[str, Deque[float]] = {}
+        self._hits: dict[str, deque[float]] = {}
 
-    def hit(self, key: str) -> Optional[float]:
+    def hit(self, key: str) -> float | None:
         """Record a request. Return the seconds to wait when over the limit, else None."""
         now = time.monotonic()
         cutoff = now - self.window_seconds

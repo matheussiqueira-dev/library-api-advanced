@@ -1,13 +1,13 @@
+from datetime import datetime
 from urllib.parse import urlparse
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-from typing import Optional
-from datetime import datetime
+
 from app.core.isbn import is_valid_isbn, normalize_isbn
 from app.models.book import BookStatus
 
 
-def _validate_isbn(value: Optional[str]) -> Optional[str]:
+def _validate_isbn(value: str | None) -> str | None:
     normalized = normalize_isbn(value)
     if normalized is None:
         return None
@@ -16,7 +16,7 @@ def _validate_isbn(value: Optional[str]) -> Optional[str]:
     return normalized
 
 
-def _validate_cover_url(value: Optional[str]) -> Optional[str]:
+def _validate_cover_url(value: str | None) -> str | None:
     if not value:
         return None
     parsed = urlparse(value)
@@ -26,37 +26,43 @@ def _validate_cover_url(value: Optional[str]) -> Optional[str]:
 
 
 class BookBase(BaseModel):
-    title: str = Field(..., min_length=1, max_length=200, json_schema_extra={"example": "The Great Gatsby"})
-    author: str = Field(..., min_length=1, max_length=100, json_schema_extra={"example": "F. Scott Fitzgerald"})
-    description: Optional[str] = Field(None, max_length=2000)
-    year: Optional[int] = Field(None, ge=1000, le=2100, json_schema_extra={"example": 1925})
-    isbn: Optional[str] = Field(None, max_length=20, json_schema_extra={"example": "978-0743273565"})
-    cover_url: Optional[str] = Field(None, max_length=500)
-    language: Optional[str] = Field(None, max_length=50)
-    page_count: Optional[int] = Field(None, ge=1)
+    title: str = Field(
+        ..., min_length=1, max_length=200, json_schema_extra={"example": "The Great Gatsby"}
+    )
+    author: str = Field(
+        ..., min_length=1, max_length=100, json_schema_extra={"example": "F. Scott Fitzgerald"}
+    )
+    description: str | None = Field(None, max_length=2000)
+    year: int | None = Field(None, ge=1000, le=2100, json_schema_extra={"example": 1925})
+    isbn: str | None = Field(None, max_length=20, json_schema_extra={"example": "978-0743273565"})
+    cover_url: str | None = Field(None, max_length=500)
+    language: str | None = Field(None, max_length=50)
+    page_count: int | None = Field(None, ge=1)
     status: BookStatus = BookStatus.AVAILABLE
+
 
 class BookCreate(BookBase):
     @field_validator("isbn")
     @classmethod
-    def check_isbn(cls, value: Optional[str]) -> Optional[str]:
+    def check_isbn(cls, value: str | None) -> str | None:
         return _validate_isbn(value)
 
     @field_validator("cover_url")
     @classmethod
-    def check_cover_url(cls, value: Optional[str]) -> Optional[str]:
+    def check_cover_url(cls, value: str | None) -> str | None:
         return _validate_cover_url(value)
 
+
 class BookUpdate(BaseModel):
-    title: Optional[str] = Field(None, min_length=1, max_length=200)
-    author: Optional[str] = Field(None, min_length=1, max_length=100)
-    description: Optional[str] = Field(None, max_length=2000)
-    year: Optional[int] = Field(None, ge=1000, le=2100)
-    isbn: Optional[str] = Field(None, max_length=20)
-    cover_url: Optional[str] = Field(None, max_length=500)
-    language: Optional[str] = Field(None, max_length=50)
-    page_count: Optional[int] = Field(None, ge=1)
-    status: Optional[BookStatus] = None
+    title: str | None = Field(None, min_length=1, max_length=200)
+    author: str | None = Field(None, min_length=1, max_length=100)
+    description: str | None = Field(None, max_length=2000)
+    year: int | None = Field(None, ge=1000, le=2100)
+    isbn: str | None = Field(None, max_length=20)
+    cover_url: str | None = Field(None, max_length=500)
+    language: str | None = Field(None, max_length=50)
+    page_count: int | None = Field(None, ge=1)
+    status: BookStatus | None = None
 
     @field_validator("title", "author", "status")
     @classmethod
@@ -68,17 +74,18 @@ class BookUpdate(BaseModel):
 
     @field_validator("isbn")
     @classmethod
-    def check_isbn(cls, value: Optional[str]) -> Optional[str]:
+    def check_isbn(cls, value: str | None) -> str | None:
         return _validate_isbn(value)
 
     @field_validator("cover_url")
     @classmethod
-    def check_cover_url(cls, value: Optional[str]) -> Optional[str]:
+    def check_cover_url(cls, value: str | None) -> str | None:
         return _validate_cover_url(value)
+
 
 class BookResponse(BookBase):
     id: int
     created_at: datetime
-    updated_at: Optional[datetime] = None
+    updated_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
