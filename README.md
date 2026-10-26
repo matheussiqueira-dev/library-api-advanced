@@ -44,7 +44,8 @@ library-api-advanced/
 │   └── main.py         # Inicialização da Application
 ├── tests/              # Suíte de Testes Automatizados (Pytest)
 ├── alembic/            # Gerenciamento de Migrações de Banco
-└── requirements.txt    # Gerenciamento de Dependências
+├── requirements.txt    # Dependências de runtime (instaladas pela Function)
+└── requirements-dev.txt # Runtime + ferramentas de teste
 ```
 
 ## 🛠️ Instalação e Uso
@@ -53,7 +54,7 @@ library-api-advanced/
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # ou .venv\Scripts\activate no Windows
-pip install -r requirements.txt
+pip install -r requirements-dev.txt  # só o runtime: pip install -r requirements.txt
 ```
 
 ### 2. Configuração do Banco
