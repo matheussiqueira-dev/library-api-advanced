@@ -74,7 +74,7 @@ async def lookup_isbn(
     normalized = normalize_isbn(isbn)
     if not normalized or not is_valid_isbn(normalized):
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="isbn must be a valid ISBN-10 or ISBN-13",
         )
     data = await service.fetch_book_by_isbn(normalized)

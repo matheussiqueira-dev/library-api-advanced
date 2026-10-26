@@ -134,6 +134,6 @@ class BodySizeLimitMiddleware:
     async def _reject(self, scope: Scope, receive: Receive, send: Send) -> None:
         response = JSONResponse(
             {"detail": "Request body too large."},
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
         )
         await response(scope, receive, send)
