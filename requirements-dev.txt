@@ -1,5 +1,5 @@
 # Test and tooling dependencies. The Vercel Function installs only requirements.txt.
 -r requirements.txt
-pytest==8.0.0
-pytest-asyncio==0.23.5
+pytest==9.0.3
+pytest-asyncio==1.4.1
 ruff==0.17.0
