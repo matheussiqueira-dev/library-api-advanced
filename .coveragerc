@@ -1,0 +1,5 @@
+[run]
+source = app
+# SQLAlchemy's async layer runs database calls inside greenlets; without this,
+# every line after an awaited query is reported as uncovered.
+concurrency = greenlet,thread

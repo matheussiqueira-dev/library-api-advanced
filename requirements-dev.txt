@@ -1,6 +1,7 @@
 # Test and tooling dependencies. The Vercel Function installs only requirements.txt.
 -r requirements.txt
 pytest==9.0.3
+pytest-cov==7.1.0
 pytest-asyncio==1.4.1
 ruff==0.17.0
 mypy==2.4.1
