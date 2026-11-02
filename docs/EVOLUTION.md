@@ -30,7 +30,7 @@
 | Cobertura | `pytest --cov=app --cov-fail-under=90` (gate no CI) | 98% total (590 statements); menor módulo `books.py` 94%. O salto vem também de `concurrency = greenlet`: antes, as linhas depois de cada `await` do SQLAlchemy contavam como não cobertas, então o 86% anterior estava subestimado | 2026-11-02 |
 | Build | — | não se aplica (Function Python sem etapa de build) | 2026-11-02 |
 | Vulnerabilidades (audit) | `pip-audit -r requirements.txt` · `pip-audit -r requirements-dev.txt` (2.10.1) | runtime: 0 · dev: 0 | 2026-11-02 |
-| CI no GitHub | API do GitHub (Actions) | run de `a293739` (2026-10-28) falhou sem executar passos, como os anteriores; outros repositórios voltaram a executar em 2026-11-02; resultado deste ciclo na seção 10 | 2026-11-02 |
+| CI no GitHub | API do GitHub (Actions) | run de `a293739` (2026-10-28) falhou sem executar passos, como os anteriores; outros repositórios voltaram a executar em 2026-11-02; run de `5d679ba` (2026-11-02) verde em todos os jobs | 2026-11-02 |
 
 Observações:
 - 2026-11-02: FastAPI 0.143.0 + Starlette 1.7.0 entraram no PR #5 e pytest 9.0.3 no PR #7, ambos mergeados pelo dono; o audit zerou.
@@ -84,7 +84,7 @@ Observações:
 - [ ] **B9 (P2, O6)** Persistência durável com Postgres gerenciado (com aprovação de serviço externo) — livro criado por POST é lido após redeploy; `DATABASE_URL` só nas env vars da Vercel.
 - [ ] **B10 (P2, O5)** Reescrever o README sem afirmações não medidas e com comandos reais (lint, typecheck, cobertura) — cada afirmação aponta para código ou teste.
 - [ ] **B11 (P2, O3)** Fixar actions por SHA e adicionar Dependabot (`pip`, `github-actions`) — PRs semanais com CI completo.
-- [ ] **B13 (P1, O1)** Restabelecer a execução do CI (job não chega a um runner desde 2026-10-24) — conferir cobrança/minutos do Actions da conta; próximo push com o job executando os passos.
+- [x] **B13 (P1, O1)** (2026-11-02, run de `5d679ba` executou todos os passos) Restabelecer a execução do CI (job não chega a um runner desde 2026-10-24) — conferir cobrança/minutos do Actions da conta; próximo push com o job executando os passos.
 - [x] **B14 (P2, O3)** (PR #7 do dono, `8fc50c9`) pytest 9.0.3 em `requirements-dev.txt` (major, com aprovação) — `pip-audit -r requirements-dev.txt` sem o PYSEC do pytest; 58 testes passando.
 - [ ] **B12 (P3, O4)** Medir latência local com `httpx.AsyncClient` em loop e registrar p95 — números na seção 10, sem afirmar desempenho no README sem essa medição.
 
@@ -116,7 +116,6 @@ Observações:
 
 ## 9. Decisões pendentes do dono
 
-- Verificar cobrança/minutos do GitHub Actions: o CI dos repositórios privados não está chegando a um runner desde 2026-10-24.
 - Persistência: Postgres gerenciado (Neon via Vercel Marketplace) ou manter SQLite efêmero com seed?
 - Purgar `.venv310` do histórico (reescrita + force-push) ou manter o histórico como está?
 - Escrita pública: manter CRUD aberto com rate limit ou passar a demo para somente leitura com escrita protegida?
