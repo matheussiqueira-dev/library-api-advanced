@@ -39,3 +39,8 @@ jobs:
     - name: Run Tests
       run: |
         pytest --cov=app --cov-fail-under=90
+
+    - name: Audit runtime dependencies
+      run: |
+        pip install pip-audit==2.10.1
+        pip-audit -r requirements.txt
