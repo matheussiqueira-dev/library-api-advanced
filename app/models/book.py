@@ -26,7 +26,9 @@ class Book(Base):
     cover_url = Column(String(500), nullable=True)
     language = Column(String(50), nullable=True)
     page_count = Column(Integer, nullable=True)
-    status = Column(SQLEnum(BookStatus), default=BookStatus.AVAILABLE, nullable=False)
+    status: Column[BookStatus] = Column(
+        SQLEnum(BookStatus), default=BookStatus.AVAILABLE, nullable=False
+    )
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

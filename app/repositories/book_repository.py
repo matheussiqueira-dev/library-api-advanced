@@ -1,4 +1,6 @@
-from sqlalchemy import func, or_, select
+from typing import Any
+
+from sqlalchemy import Column, func, or_, select
 
 from app.models.book import Book
 from app.repositories.base import BaseRepository
@@ -46,7 +48,7 @@ class BookRepository(BaseRepository[Book]):
         total = await self.db.scalar(count_stmt)
 
         # Sort
-        sort_map = {
+        sort_map: dict[str, Column[Any]] = {
             "title": Book.title,
             "author": Book.author,
             "year": Book.year,
@@ -62,4 +64,4 @@ class BookRepository(BaseRepository[Book]):
         stmt = stmt.order_by(order_by).offset(skip).limit(limit)
 
         result = await self.db.execute(stmt)
-        return result.scalars().all(), int(total or 0)
+        return list(result.scalars().all()), int(total or 0)

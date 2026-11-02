@@ -19,7 +19,7 @@ class BaseRepository[ModelType: Base]:
     async def get_multi(self, *, skip: int = 0, limit: int = 100) -> list[ModelType]:
         query = select(self.model).offset(skip).limit(limit)
         result = await self.db.execute(query)
-        return result.scalars().all()
+        return list(result.scalars().all())
 
     async def create(self, *, obj_in: dict) -> ModelType:
         db_obj = self.model(**obj_in)
