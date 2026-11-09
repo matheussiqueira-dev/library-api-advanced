@@ -1,0 +1,19 @@
+# Monthly version updates, in line with the account's minimal CI usage policy
+# (FinOps review of 2026-11-06). Dependabot security updates stay immediate.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      python:
+        patterns: ["*"]
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
