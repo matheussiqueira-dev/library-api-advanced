@@ -1,33 +1,34 @@
 # Library Studio
 
-Uma implementação de referência para gestão de acervos bibliográficos, demonstrando arquitetura moderna, padrões de design robustos e uma experiência de usuário (UX) excepcional.
+API REST e interface web de referência para gestão de acervo bibliográfico: CRUD de livros, busca com filtros, indicadores do acervo e preenchimento de metadados por ISBN.
 
 [![Demo ao vivo](https://img.shields.io/badge/Demo-ao_vivo-00f2fe?style=for-the-badge&logo=vercel&logoColor=000000)](https://library-api-advanced.vercel.app)
 [![Case no portfólio](https://img.shields.io/badge/Case-Portf%C3%B3lio-000000?style=for-the-badge&logo=googlechrome&logoColor=white)](https://www.matheussiqueira.dev/pt-BR/projects/library-api-advanced)
 [![Código](https://img.shields.io/badge/C%C3%B3digo-GitHub-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/matheussiqueira-dev/library-api-advanced)
 
-Este projeto transcende um CRUD básico, oferecendo integração com APIs externas, arquitetura em camadas (Repository/Service/API) e uma interface reativa de alto desempenho.
+Além do CRUD, o projeto integra a OpenLibrary (com cache e rate limit), separa as camadas em rotas, serviço e repositório e roda como uma Function Python na Vercel.
 
 ## 🚀 Tecnologias Core
 
-- **Backend**: FastAPI (Python 3.12) - Performance extrema com tipagem estática via Pydantic v2.
+- **Backend**: FastAPI (Python 3.12) com validação de entrada e saída via Pydantic v2.
 - **Banco de Dados**: SQLite com **SQLAlchemy 2.0 (Async)** e `aiosqlite`.
 - **Arquitetura**:
-  - **Repository Pattern**: Abstração total da camada de dados.
-  - **Service Layer**: Centralização das regras de negócio.
-  - **Dependency Injection**: Uso intensivo do sistema de dependências do FastAPI.
-- **Frontend**: Vanilla JS moderno, CSS customizado com foco em Glassmorphism e Ícones Lucide.
+  - **Repositório** (`app/repositories/`): acesso a dados, com um repositório base genérico para o CRUD.
+  - **Serviço** (`app/services/`): regras de negócio e integração com a OpenLibrary.
+  - **Injeção de dependências** do FastAPI para sessão de banco e serviço (substituídas nos testes).
+- **Migrações**: Alembic, com a migração inicial em `alembic/versions/` e um teste que compara `upgrade head` com os modelos.
+- **Frontend**: HTML server-rendered (Jinja2), JavaScript sem framework, CSS próprio e ícones Lucide.
 - **Integrações**: OpenLibrary API para busca automática de metadados via ISBN (com cache em memória).
 - **Observabilidade**: Logs com nível configurável e middleware que adiciona `X-Request-Id` e `X-Process-Time`.
 
 ## ✨ Funcionalidades Principais
 
-- **Gestão de Livros Pro**: Cadastro completo com suporte a descrição, capa, ano e status (Disponível, Emprestado, etc).
-- **Lookup Inteligente via ISBN**: Preenchimento automático de metadados consumindo APIs externas.
-- **Busca Avançada**: Filtros em tempo real por título, autor, intervalo de anos e paginação dinâmica.
-- **Interface Premium**: Design dark-mode sofisticado, animações suaves e layouts responsivos.
-- **Dashboard de Estatísticas**: Visão geral do acervo em tempo real.
-- **API Auto-documentada**: Swagger UI integrado para testes rápidos.
+- **Cadastro de livros**: título, autor, descrição, capa, ano, ISBN (com dígito verificador), idioma, páginas e status (disponível, emprestado, reservado, manutenção).
+- **Busca de metadados por ISBN** na OpenLibrary, com cache em memória e rate limit próprio.
+- **Busca com filtros** por texto (título/autor), autor, ano ou intervalo de anos, com paginação.
+- **Indicadores do acervo** na interface: total de livros, ano mais recente e livros com ISBN (calculados no navegador a partir da página carregada).
+- **Interface escura e responsiva**, com estados de carregamento e mensagens de retorno.
+- **Documentação da API** em `/docs` (Swagger UI) e `/redoc`.
 
 ## 📁 Estrutura do Projeto
 
@@ -58,10 +59,9 @@ pip install -r requirements-dev.txt  # só o runtime: pip install -r requirement
 ```
 
 ### 2. Configuração do Banco
-O sistema utiliza criação automática de schema para facilitar o setup inicial.
+Por padrão (`DB_AUTO_CREATE=true`) o app cria as tabelas ao iniciar. Para gerenciar o schema por migrações, desligue a criação automática e aplique o histórico do Alembic:
 ```bash
-# Opcional se desejar rodar migrações manuais
-alembic upgrade head
+DB_AUTO_CREATE=false alembic upgrade head
 ```
 
 ### 3. Execução
@@ -69,20 +69,29 @@ alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
-### 4. Testes
-Os testes usam um SQLite temporário e uma OpenLibrary simulada: não tocam o `library.db` local nem acessam a rede.
+### 4. Testes e cobertura
+Os testes usam um SQLite temporário e uma OpenLibrary simulada: não tocam o `library.db` local nem acessam a rede. O CI exige 90% de cobertura de `app/`.
 ```bash
-pytest
+pytest --cov=app --cov-fail-under=90
 ```
 
-### 5. Lint e formatação
-Configuração em `ruff.toml` (a mesma que o CI usa).
+### 5. Lint, formatação e tipos
+Configuração em `ruff.toml` e `mypy.ini` (a mesma que o CI usa).
 ```bash
 ruff check .
 ruff format --check .
+mypy app
 ```
 
-### 5. Acessos
+### 6. Auditoria de dependências
+```bash
+pip install pip-audit==2.10.1
+pip-audit -r requirements.txt
+```
+
+O workflow de CI roda esses passos sob demanda (Actions → "CI - Build & Test" → Run workflow).
+
+### 7. Acessos
 - **Frontend**: `http://localhost:8000/`
 - **Docs (Swagger)**: `http://localhost:8000/docs`
 
@@ -130,13 +139,13 @@ Limitações: os dados voltam ao acervo inicial periodicamente e podem divergir 
 
 Recomendado: uma regra de rate limit no Vercel Firewall cobrindo `POST/PUT/DELETE /api/v1/books` e `/api/v1/books/lookup`, já que o limite do app é por instância.
 
-## 🛡️ Boas Práticas Aplicadas
+## 🛡️ Práticas aplicadas
 
-- **DRY (Don't Repeat Yourself)**: Uso de um Base Repository para operações CRUD genéricas.
-- **SoC (Separation of Concerns)**: Responsabilidades claras entre cada camada da aplicação.
-- **Segurança**: Validação rigorosa de inputs com Pydantic.
-- **Performance**: Uso intensivo de operações assíncronas (async/await) para I/O não bloqueante.
-- **UX/UI**: Hierarquia visual clara, feedback imediato ao usuário (Toasts) e estados de carregamento.
+- **Repositório base** (`app/repositories/base.py`) com o CRUD genérico reaproveitado pelo repositório de livros.
+- **Camadas separadas**: rotas não acessam o banco diretamente; regras ficam no serviço.
+- **Validação de entrada** com Pydantic e limites testados em `tests/test_security.py`.
+- **I/O assíncrono** no banco (SQLAlchemy async + aiosqlite) e na OpenLibrary (httpx). Desempenho ainda não medido; ver `docs/EVOLUTION.md`.
+- **Feedback na interface** com toasts e estados de carregamento.
 
 ---
 
