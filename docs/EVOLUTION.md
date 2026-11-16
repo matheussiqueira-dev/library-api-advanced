@@ -1,13 +1,13 @@
 # Plano de Evolução — library-api-advanced
 
-> Documento vivo, revisado semanalmente. Última revisão: 2026-11-09.
+> Documento vivo, revisado semanalmente. Última revisão: 2026-11-16.
 > Regra central: nenhuma mudança entra sem estar ligada a um objetivo desta página e sem manter ou melhorar as métricas da seção 2.
 
 ## 1. Identidade do projeto
 
 - **Propósito:** "Library Studio": API e interface web de referência para gestão de acervo bibliográfico (CRUD de livros, busca com filtros, estatísticas e preenchimento de metadados por ISBN via OpenLibrary), publicada como demo do portfólio.
 - **Tipo:** API REST (FastAPI) com frontend server-rendered (Jinja2 + JavaScript vanilla), em uma Function Python na Vercel.
-- **Stack:** Python 3.12 (`.python-version`), FastAPI 0.143.0 (Starlette 1.7.0), Pydantic 2.14.1, pydantic-settings 2.2.1, SQLAlchemy 2.0.27 async + aiosqlite 0.19.0, Alembic 1.13.1, uvicorn 0.27.1, Jinja2 3.1.6, httpx 0.27.0, python-dotenv 1.2.4; dev (`requirements-dev.txt`): pytest 9.0.3 + pytest-asyncio 1.4.1, pytest-cov 7.1.0, ruff 0.17.0 (`ruff.toml`), mypy 2.4.1 (`mypy.ini`, plugin do Pydantic). Frontend com Lucide 1.48.0 (SRI) e ReDoc 2.5.4.
+- **Stack:** Python 3.12 (`.python-version`), FastAPI 0.143.0 (Starlette 1.7.0), Pydantic 2.14.3, pydantic-settings 2.16.3, SQLAlchemy 2.0.57 async + aiosqlite 0.22.1, Alembic 1.20.1, uvicorn 0.54.0, Jinja2 3.1.6, httpx 0.27.0, python-dotenv 1.2.4; dev (`requirements-dev.txt`): pytest 9.2.0 + pytest-asyncio 1.5.0, pytest-cov 7.1.0, ruff 0.17.5 (`ruff.toml`), mypy 2.4.1 (`mypy.ini`, plugin do Pydantic). Frontend com Lucide 1.48.0 (SRI) e ReDoc 2.5.4.
 - **Gerenciador de pacotes:** pip com `requirements.txt` (runtime, instalado pela Function) e `requirements-dev.txt` (runtime + testes e lint), sem lock de hashes.
 - **Deploy:** Vercel, preset FastAPI (entrypoint `app/main.py`), `vercel.json` só exclui testes e arquivos de desenvolvimento do bundle; produção em https://library-api-advanced.vercel.app. CI do GitHub só sob demanda (`workflow_dispatch`) desde 2026-11-06, por decisão FinOps do dono. Sem `DATABASE_URL`, usa SQLite efêmero em `/tmp` com seed.
 - **Estrutura:**
@@ -23,17 +23,19 @@
 
 | Verificação | Comando | Resultado | Data |
 | --- | --- | --- | --- |
-| Instalação | `python3.12 -m venv .venv && pip install -r requirements-dev.txt` | PASS (Python 3.12.3) | 2026-11-09 |
-| Lint | `ruff check .` · `ruff format --check .` | 0 achados · 28 arquivos formatados | 2026-11-09 |
-| Typecheck | `mypy app` (`mypy.ini`) | 0 erros em 17 arquivos | 2026-11-09 |
-| Testes | `pytest -q -p no:cacheprovider` | 69 passando / 0 falhando (+2 de migração) | 2026-11-09 |
-| Cobertura | `pytest --cov=app --cov-fail-under=90` (gate no CI) | 97,97% total (590 statements) | 2026-11-09 |
-| Build | — | não se aplica (Function Python sem etapa de build) | 2026-11-09 |
-| Vulnerabilidades (audit) | `pip-audit -r requirements.txt` · `pip-audit -r requirements-dev.txt` (2.10.1) | runtime: 0 · dev: 0 | 2026-11-09 |
-| CI no GitHub | API do GitHub (Actions) | último run verde: `5d679ba` (2026-11-02); desde `0e3d4b6` o workflow é só `workflow_dispatch`, então os pushes deste ciclo não disparam CI (nenhum run manual disparado, para respeitar a política de minutos) | 2026-11-09 |
+| Instalação | `python3.12 -m venv .venv && pip install -r requirements-dev.txt` | PASS (Python 3.12.3); `pip check` limpo | 2026-11-16 |
+| Lint | `ruff check .` · `ruff format --check .` | 0 achados · 28 arquivos formatados | 2026-11-16 |
+| Typecheck | `mypy app` (`mypy.ini`) | 0 erros em 17 arquivos | 2026-11-16 |
+| Testes | `pytest -q -p no:cacheprovider` (também com `-W error::DeprecationWarning`) | 69 passando / 0 falhando (+2 de migração) | 2026-11-16 |
+| Cobertura | `pytest --cov=app --cov-fail-under=90` (gate no CI) | 97,97% total (590 statements) | 2026-11-16 |
+| Latência local | `uvicorn` + cliente `httpx` sequencial, 500 requisições após 20 de aquecimento, SQLite com seed de 14 livros (x86_64, 2 vCPU) | `GET /api/v1/books/` p50 3,35 ms · p95 4,56 ms; `?search=a` p95 4,17 ms; `/lookup` não medido (depende da OpenLibrary real) | 2026-11-16 |
+| Build | `python -c "import app.main"` + `uvicorn` local | import OK; `/health` 200 e `GET /api/v1/books/` 200 com seed | 2026-11-16 |
+| Vulnerabilidades (audit) | `pip-audit -r requirements.txt` · `pip-audit -r requirements-dev.txt` (2.10.1) | runtime: 0 · dev: 0 | 2026-11-16 |
+| CI no GitHub | API do GitHub (Actions) | workflow `CI` só sob demanda, nenhum run manual no ciclo; últimos runs (Dependabot, `02507f8`) verdes; PRs #8, #9 e #10 do Dependabot abertos | 2026-11-16 |
 
 Observações:
-- 2026-11-09: produção segue não verificada (o proxy do ambiente bloqueia `*.vercel.app`; `curl` sem resposta). Pins de fevereiro ainda desatualizados (uvicorn 0.27.1, SQLAlchemy 2.0.27, alembic 1.13.1, pydantic-settings 2.2.1 etc.), sem advisories: virou o B15.
+- 2026-11-16: B15 aplicado em três grupos (dev, banco/servidor, Pydantic); SQLAlchemy ficou na linha 2.0 (2.0.57). O pytest-asyncio 1.5.0 avisa quando `asyncio_default_fixture_loop_scope` não está definido; fixado em `function` (comportamento atual). O PR #9 do Dependabot agrupa 12 updates, incluindo SQLAlchemy 2.1 e `httpx` 0.28, que estão na seção 9; o PR #10 sobe `aiofiles` para 25 (mesma decisão).
+- 2026-11-09: produção segue não verificada (o proxy do ambiente bloqueia `*.vercel.app`; `curl` sem resposta). Pins de fevereiro ainda desatualizados (uvicorn 0.54.0, SQLAlchemy 2.0.27, alembic 1.13.1, pydantic-settings 2.2.1 etc.), sem advisories: virou o B15.
 - 2026-11-02: FastAPI 0.143.0 + Starlette 1.7.0 entraram no PR #5 e pytest 9.0.3 no PR #7, ambos mergeados pelo dono; o audit zerou.
 - O PR #1 da padronização (2026-10-10) resolveu XSS armazenado, `.venv310`/`library.db`/`__pycache__` versionados (`git ls-files` limpo: 0 ocorrências), rate limit, kill switch, CSP e limites de entrada. Não entram como pendentes.
 - Produção não verificada neste ambiente (saída de rede restrita). Persistência durável (Postgres) não está configurada: a demo reinicia o acervo a cada cold start.
@@ -55,7 +57,7 @@ Observações:
 | O1 | Funcionamento | Produção saudável e CI que barra regressões | `/health` 200 em produção; jobs do CI (pytest, lint, typecheck, audit) | não verificado; CI só pytest | 200; 4 checks verdes por 4 semanas | P0 | ativo (com o CI sob demanda, a meta de 4 semanas precisa ser redefinida, ver seção 9) |
 | O2 | Cobertura de testes | Cobrir repositório e serviço | cobertura de `app/` · menor módulo | 86% · 62% | ≥ 90% · ≥ 80% | P2 | monitorado (meta atingida em 2026-11-02: 98% · 94%) |
 | O3 | Segurança | Zerar vulnerabilidades conhecidas | achados do `pip-audit` | 24 | 0 | P0 | monitorado (meta atingida; `pip-audit` no CI) |
-| O4 | Performance | Medir latência das rotas principais | p95 de `GET /api/v1/books` e `/lookup` (cache quente) em teste local | não medido | baseline registrado; `GET /books` p95 ≤ 50 ms local | P3 | ativo |
+| O4 | Performance | Medir latência das rotas principais | p95 de `GET /api/v1/books` e `/lookup` (cache quente) em teste local | não medido | baseline registrado; `GET /books` p95 ≤ 50 ms local | P3 | monitorado (2026-11-16: p95 4,56 ms local) |
 | O5 | Qualidade/Manutenibilidade | Lint e tipos limpos com config versionada | achados ruff · erros mypy | 124 · 11 | 0 · 0 | P1 | monitorado (meta atingida em 2026-11-02; mypy no CI) |
 | O6 | Dados | Persistência durável e schema migrado | migrações Alembic versionadas; dados sobrevivem a redeploy | 0 migrações; SQLite efêmero | 1+ migração inicial; livro criado persiste após redeploy (com aprovação de Postgres) | P2 | ativo (migração inicial feita em 2026-11-09; falta a persistência, B9) |
 
@@ -87,13 +89,17 @@ Observações:
 - [x] **B11 (P2, O3)** (2026-11-09, `9fc0cd2`; Dependabot mensal, alinhado à política de CI sob demanda; SHAs conferidos com `git ls-remote`) Fixar actions por SHA e adicionar Dependabot (`pip`, `github-actions`) — PRs semanais com CI completo.
 - [x] **B13 (P1, O1)** (2026-11-02, run de `5d679ba` executou todos os passos) Restabelecer a execução do CI (job não chega a um runner desde 2026-10-24) — conferir cobrança/minutos do Actions da conta; próximo push com o job executando os passos.
 - [x] **B14 (P2, O3)** (PR #7 do dono, `8fc50c9`) pytest 9.0.3 em `requirements-dev.txt` (major, com aprovação) — `pip-audit -r requirements-dev.txt` sem o PYSEC do pytest; 58 testes passando.
-- [ ] **B15 (P2, O1)** Atualizar pins antigos dentro da major (`uvicorn` 0.27 → 0.54, `aiosqlite` 0.19 → 0.22, `alembic` 1.13 → 1.20, `pydantic-settings` 2.2 → 2.16, `greenlet`, `ruff` 0.17.4, `pytest` 9.2.0), um grupo por vez — suíte, mypy e teste de migração verdes; `pip-audit` 0. FastAPI/Starlette, `httpx` 0.28, SQLAlchemy 2.1 e `aiofiles` 25 ficam para decisão (seção 9).
-- [ ] **B12 (P3, O4)** Medir latência local com `httpx.AsyncClient` em loop e registrar p95 — números na seção 10, sem afirmar desempenho no README sem essa medição.
+- [x] **B15 (P2, O1)** (2026-11-16, `eb42bd6` dev, `166f549` banco/servidor, `13ac009` Pydantic; SQLAlchemy 2.0.57, ainda na linha 2.0) Atualizar pins antigos dentro da major (`uvicorn` 0.27 → 0.54, `aiosqlite` 0.19 → 0.22, `alembic` 1.13 → 1.20, `pydantic-settings` 2.2 → 2.16, `greenlet`, `ruff` 0.17.4, `pytest` 9.2.0), um grupo por vez — suíte, mypy e teste de migração verdes; `pip-audit` 0. FastAPI/Starlette, `httpx` 0.28, SQLAlchemy 2.1 e `aiofiles` 25 ficam para decisão (seção 9).
+- [ ] **B16 (P2, O5)** Decidir os PRs #8, #9 e #10 do Dependabot: o #8 fica obsoleto com B15 (`pytest-asyncio` 1.5.0) e o #9 traz SQLAlchemy 2.1/`httpx` 0.28 — PRs fechados ou mergeados com motivo; suíte verde.
+- [x] **B12 (P3, O4)** (2026-11-16, sem commit de código; números na seção 2 e na seção 10; `/lookup` não medido para não chamar a OpenLibrary real) Medir latência local com `httpx.AsyncClient` em loop e registrar p95 — números na seção 10, sem afirmar desempenho no README sem essa medição.
 
 ## 7. Radar técnico
 
 | Data | Item | Fonte | Veredito (adotar / avaliar / descartar) | Motivo |
 | --- | --- | --- | --- | --- |
+| 2026-11-16 | uvicorn 0.54.0, aiosqlite 0.22.1, alembic 1.20.1, SQLAlchemy 2.0.57 | https://pypi.org/project/uvicorn/ | adotado (`166f549`) | Pins de fevereiro atualizados na mesma major/linha (B15); teste de migração verde. |
+| 2026-11-16 | pytest-asyncio 1.5.0 (`asyncio_default_fixture_loop_scope`) | https://pytest-asyncio.readthedocs.io/en/stable/reference/configuration.html | adotado (`eb42bd6`) | Escopo explícito evita mudança silenciosa de comportamento em versões futuras. |
+| 2026-11-16 | FastAPI 0.163.1 / Starlette 1.10.0 | https://fastapi.tiangolo.com/release-notes/ | monitorar | Sem advisories nas versões atuais; nenhum objetivo ativo pede a subida. |
 | 2026-11-09 | Alembic `compare_metadata` para teste de paridade schema × modelos | https://alembic.sqlalchemy.org/en/latest/api/autogenerate.html | adotado (`6d7bd7e`) | Garante que a migração inicial (O6) não diverge dos modelos. |
 | 2026-11-09 | SQLAlchemy 2.1 (série nova, com guia de migração) | https://docs.sqlalchemy.org/en/21/changelog/migration_21.html | avaliar | Mudanças de comportamento documentadas; projeto em 2.0.27; decisão na seção 9. |
 | 2026-11-09 | `actions/checkout` v7.0.1 e `actions/setup-python` v7.1.0 por SHA | https://github.com/actions/setup-python/releases | adotado (`9fc0cd2`) | Referência imutável no workflow (B11). |
@@ -136,3 +142,4 @@ Observações:
 | 2026-10-26 | CI sem executar (job não chega ao runner); 24 achados de audit | `b04b570` fix (Jinja2, dotenv), `843d84e` build (requirements-dev), `d96eb36` style (ruff + CI); docs | audit runtime 24 → 14; ruff 124 → 0; formato 17 → 0 arquivos pendentes; testes 58 → 58; cobertura 86% → 86%; mypy 11 → 11 | B13 (CI), aprovação de B1, B5, B2 depois de B1. Nenhuma feature neste ciclo |
 | 2026-11-02 | Audit zerado pelos PRs #5 e #7 do dono; cobertura estava subestimada (greenlet); último CI sem executar passos | `8fc31a4` fix (mypy + CI), `16c4eeb` test (camada de dados + gate), `955cd00` ci (pip-audit); docs | testes 58 → 67; cobertura 86% → 98%; mypy 11 → 0; audit runtime 14 → 0; O2, O3 e O5 monitorados | B6 (produção), B8, B11. Nenhuma feature neste ciclo |
 | 2026-11-09 | CI virou sob demanda (`0e3d4b6`), sem run nos pushes; produção segue não verificável daqui; pins de fevereiro sem advisories | `6d7bd7e` feat (migração inicial + teste, B8), `9fc0cd2` ci (SHA + Dependabot, B11), `5dd2ec6` docs (README, B10); docs | testes 67 → 69; cobertura 98% → 97,97% (mesmos 12 statements sem cobertura; arredondamento); ruff/mypy 0; audit 0 | B15, B6 (produção). Nenhuma feature neste ciclo |
+| 2026-11-16 | Suíte verde; CI sob demanda, sem run; 3 PRs do Dependabot abertos (#8–#10); produção segue não verificável daqui | `eb42bd6`, `166f549`, `13ac009` chore (deps, B15); B12 medido sem código; docs | testes 69 mantidos; cobertura 97,97% mantida; ruff/mypy 0; audit 0; pins desatualizados na major 9 → 0 (restam FastAPI/Starlette e majors da seção 9); latência não medida → p95 4,56 ms | B16 (PRs do Dependabot), B6 (produção). Nenhuma feature neste ciclo (F2/F3 seguem propostas) |
